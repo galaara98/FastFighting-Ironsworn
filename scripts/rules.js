@@ -66,6 +66,8 @@ export const ironswornRules = {
   },
   basicAction: { action: 1 },
   talkCost: { action: 1 },
+  /** A playstyle's taunt: a move (Compel, provoking a foe), the turn's one. */
+  tauntCost: { action: 1 },
   stealCost: { action: 1 },
   feintCost: {},
   standCost() {
