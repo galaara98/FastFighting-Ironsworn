@@ -3,6 +3,7 @@
  */
 import { movesFor, TICKS, TRACK } from "./moves.js";
 import { LORE_BOOST } from "./lore.js";
+import { t, moveName } from "./words.js";
 
 const harm = n => ({ dice: [], flat: n, type: "harm", persistent: false, category: null });
 
@@ -24,7 +25,7 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
   if ( ranged ) forms.push({ key: "range", stat: "edge", melee: false });
   for ( const f of forms ) {
     const reach = f.melee ? { melee: true, reach: 5, range: null } : { melee: false, range: { increment: 60, max: 120, noPenalty: true } };
-    const label = f.melee ? "" : " (at range)";
+    const label = f.melee ? "" : t("AtRange", " (at range)");
     for ( const move of ["strike", "clash"] ) {
       out.push({
         id: `${id}.${move}.${f.key}`, name: `${m[move].name}${label}`, kind: "strike", cost: 1, move, bonus: stats?.[f.stat] ?? 1, stat: f.stat, ...reach,
@@ -47,7 +48,7 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
  * unless it says otherwise: see lore.js), at whoever it's aimed; a miss pays the price.
  */
 export function loreSizeUp(stats, boost = LORE_BOOST.default) {
-  return { mod: Number(stats?.wits) || 1, dc: 10, label: "Secure an Advantage", boost, uses: 1, anyFoe: true, missOutcome: { price: true, label: "Pay the Price" } };
+  return { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("Secure an Advantage"), boost, uses: 1, anyFoe: true, missOutcome: { price: true, label: moveName("Pay the Price") } };
 }
 
 /**
@@ -102,6 +103,6 @@ export function foeNumbers({ id, rank, current = 0 }) {
     level: r,
     hp: { value: TRACK - marked, max: TRACK, temp: 0 },
     iwr: { immune: [], weak: {}, resist: {}, ticksPerHarm: TICKS[r] },
-    actions: [{ id: `${id}.attack`, name: "Attack", kind: "strike", cost: 1, bonus: r + 2, melee: true, reach: 5, damage: [harm(r)], traits: [] }]
+    actions: [{ id: `${id}.attack`, name: t("Attack", "Attack"), kind: "strike", cost: 1, bonus: r + 2, melee: true, reach: 5, damage: [harm(r)], traits: [] }]
   };
 }

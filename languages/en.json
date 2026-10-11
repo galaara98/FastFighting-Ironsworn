@@ -27,6 +27,88 @@
         "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 3× a sure thing more often than not. Default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price. Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5×; the rest helps Compel a hardier foe."
       }
     },
-    "SecureAnAdvantage": "Secure an Advantage"
+    "SecureAnAdvantage": "Secure an Advantage",
+    "AtRange": " (at range)",
+    "Attack": "Attack",
+    "MomentumChange": ", {n} momentum",
+    "MoveRoll": "{move} (+{stat} {total} vs {dice}): {what}",
+    "TheRoll": "the roll",
+    "Burn": {
+      "Strong": "burns momentum ({n}): {label} is a strong hit",
+      "Weak": "burns momentum ({n}): {label} is a weak hit"
+    },
+    "Endure": {
+      "ShakeCost": "shakes it off (+1 health, -{n} momentum)",
+      "Shake": "shakes it off (+1 health)",
+      "Embrace": "embraces the pain (+1 momentum)",
+      "PressTrade": "presses on (+1 health, -1 momentum)",
+      "Press": "presses on",
+      "WorseHealth": "worse than it looked (-1 health)",
+      "WorseMomentum": "worse than it looked (-2 momentum)",
+      "Reels": "reels (-1 momentum)",
+      "Wounded": "at 0 health: wounded",
+      "MortalDies": "the harm is mortal (d100 {d100}); {face}: miss. Dies",
+      "MortalBack": "the harm is mortal (d100 {d100}); {face}: cast back into the world, out of the fight",
+      "MortalBound": "the harm is mortal (d100 {d100}); {face}: lives, bound to a deathbound quest, out of the fight",
+      "Dying": "dying (d100 {d100}): needs healing within an hour or two",
+      "Out": "out cold (d100 {d100})",
+      "Reeling": "reeling (d100 {d100}; -1 momentum)",
+      "Standing": "still standing (d100 {d100})"
+    },
+    "Move": {
+      "Strike": "Strike",
+      "Clash": "Clash",
+      "EndtheFight": "End the Fight",
+      "TakeDecisiveAction": "Take Decisive Action",
+      "SecureanAdvantage": "Secure an Advantage",
+      "GainGround": "Gain Ground",
+      "AidYourAlly": "Aid Your Ally",
+      "EntertheFray": "Enter the Fray",
+      "EndureHarm": "Endure Harm",
+      "PaythePrice": "Pay the Price",
+      "FaceDeath": "Face Death"
+    },
+    "Control": {
+      "hasinitiative": "has initiative",
+      "losesinitiative": "loses initiative",
+      "isincontrol": "is in control",
+      "isinabadspot": "is in a bad spot"
+    },
+    "Stat": {
+      "edge": "edge",
+      "heart": "heart",
+      "iron": "iron",
+      "shadow": "shadow",
+      "wits": "wits"
+    },
+    "Nature": {
+      "people": "people",
+      "firstborn": "firstborn",
+      "animal": "animal",
+      "beast": "beast",
+      "horror": "horror",
+      "machine": "machine"
+    },
+    "Reason": {
+      "Sworn": "{heart} {n}: sworn to their companions",
+      "Rank": "{nature}, rank {r}"
+    },
+    "Out": {
+      "Health": "Health {from} → {to}",
+      "Momentum": "Momentum {from} → {to}",
+      "Burned": " (burned {n}×)",
+      "Wounded": "Wounded",
+      "Dies": "DIES",
+      "Deathbound": "Survives Face Death, bound to a deathbound quest; out cold",
+      "Cold": "Out cold",
+      "Dying": "Dying: needs healing within an hour or two, or Face Death",
+      "Retreated": "Retreated from the fight",
+      "Beaten": "Beaten: track complete ({n}/10)",
+      "Progress": "Progress {from}/10 → {to}/10 ({n} ticks)",
+      "TalkedAway": "Talked into leaving (token hidden)",
+      "Fled": "Fled (token hidden)",
+      "Surrenders": "Surrenders",
+      "StandsDown": "Stands down"
+    }
   }
 }

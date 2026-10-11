@@ -17,6 +17,7 @@
  */
 import { DOWNED_MODELS, STATUS } from "./core.js";
 import { movesFor, MOMENTUM, grade, chances, burnGrade, harmTable } from "./moves.js";
+import { t, statName } from "./words.js";
 
 const BASE_DC = 10;
 /** The engine's difficulty (a DC; 10 is ordinary) as adds: a hard talk, a friendly one. */
@@ -168,9 +169,9 @@ export const ironswornRules = {
     u.control = roll.degree >= 2;
     if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);
     if ( roll.degree <= 1 && m.fray.missMomentum ) setMomentum(u, momentumOf(u) + m.fray.missMomentum);
-    const lost = m.fray.missMomentum ? `, ${m.fray.missMomentum} momentum` : "";
-    const what = { 3: `${m.control.on}, +2 momentum`, 2: m.control.on, 1: `${m.control.off}${lost}`, 0: `${m.control.off}${lost}` }[roll.degree];
-    return { text: `${m.fray.name} (+${stat} ${roll.total} vs ${roll.challenge.join(", ")}): ${what}`, data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
+    const lost = m.fray.missMomentum ? t("MomentumChange", ", {n} momentum", { n: m.fray.missMomentum }) : "";
+    const what = { 3: `${m.control.on}${t("MomentumChange", ", {n} momentum", { n: "+2" })}`, 2: m.control.on, 1: `${m.control.off}${lost}`, 0: `${m.control.off}${lost}` }[roll.degree];
+    return { text: t("MoveRoll", "{move} (+{stat} {total} vs {dice}): {what}", { move: m.fray.name, stat: statName(stat), total: roll.total, dice: roll.challenge.join(", "), what }), data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
   },
   /** Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. */
   adjustRoll(run, u, roll, ctx) {
@@ -183,7 +184,7 @@ export const ironswornRules = {
     setMomentum(u, resetOf(u));
     u.burned = (u.burned ?? 0) + 1;
     return { ...roll, total: momentum, degree: better, burned: momentum,
-      said: { text: `burns momentum (${momentum}): ${ctx?.label ?? "the roll"} is a ${better === 3 ? "strong" : "weak"} hit`, data: { momentum, degree: better, label: ctx?.label ?? "" } } };
+      said: { text: t(better === 3 ? "Burn.Strong" : "Burn.Weak", better === 3 ? "burns momentum ({n}): {label} is a strong hit" : "burns momentum ({n}): {label} is a weak hit", { n: momentum, label: ctx?.label ?? t("TheRoll", "the roll") }), data: { momentum, degree: better, label: ctx?.label ?? "" } } };
   },
   /** Who has the initiative after a move. */
   afterRoll(run, u, roll, ctx) {
@@ -218,43 +219,43 @@ export const ironswornRules = {
     const stat = Math.max(Math.max(0, u.hp), u.spec.stats?.iron ?? 1);
     const roll = actionRoll(rng, stat);
     const e = m.endure;
-    const base = `${e.name} (+${stat} ${roll.total} vs ${roll.challenge.join(", ")}): `;
+    const base = t("MoveRoll", "{move} (+{stat} {total} vs {dice}): {what}", { move: e.name, stat, total: roll.total, dice: roll.challenge.join(", "), what: "" });
     const data = { move: "endure", total: roll.total, challenge: roll.challenge, degree: roll.degree, harm: amount };
     if ( roll.degree === 3 ) {
       const can = u.hp < u.maxHp && (e.shakeCost ? u.hp > 0 && momentumOf(u) - e.shakeCost >= resetOf(u) : !u.wounded);
       if ( can ) {
         u.hp += 1;
         if ( e.shakeCost ) setMomentum(u, momentumOf(u) - e.shakeCost);
-        return { text: `${base}shakes it off (+1 health${e.shakeCost ? `, -${e.shakeCost} momentum` : ""})`, data: { ...data, shook: true } };
+        return { text: base + (e.shakeCost ? t("Endure.ShakeCost", "shakes it off (+1 health, -{n} momentum)", { n: e.shakeCost }) : t("Endure.Shake", "shakes it off (+1 health)")), data: { ...data, shook: true } };
       }
       setMomentum(u, momentumOf(u) + 1);
-      return { text: `${base}embraces the pain (+1 momentum)`, data };
+      return { text: base + t("Endure.Embrace", "embraces the pain (+1 momentum)"), data };
     }
     if ( roll.degree === 2 ) {
       // (Starforged: a point of momentum for a point of health, when it's worth it.)
       if ( e.weakTrade && !u.wounded && u.hp < u.maxHp && momentumOf(u) - 1 >= resetOf(u) ) {
         u.hp += 1;
         setMomentum(u, momentumOf(u) - 1);
-        return { text: `${base}presses on (+1 health, -1 momentum)`, data: { ...data, shook: true } };
+        return { text: base + t("Endure.PressTrade", "presses on (+1 health, -1 momentum)"), data: { ...data, shook: true } };
       }
-      return { text: `${base}presses on`, data };
+      return { text: base + t("Endure.Press", "presses on"), data };
     }
     if ( e.miss === "worse" ) {
       // Starforged: it's worse than you thought: -1 health, or -2 momentum when health is what's short.
       if ( u.hp > 1 ) {
         u.hp -= 1;
-        return { text: `${base}worse than it looked (-1 health)`, data };
+        return { text: base + t("Endure.WorseHealth", "worse than it looked (-1 health)"), data };
       }
       setMomentum(u, momentumOf(u) - 2);
-      if ( u.hp > 0 ) return { text: `${base}worse than it looked (-2 momentum)`, data };
+      if ( u.hp > 0 ) return { text: base + t("Endure.WorseMomentum", "worse than it looked (-2 momentum)"), data };
     } else {
       setMomentum(u, momentumOf(u) - 1);
-      if ( u.hp > 0 ) return { text: `${base}reels (-1 momentum)`, data };
+      if ( u.hp > 0 ) return { text: base + t("Endure.Reels", "reels (-1 momentum)"), data };
     }
     // At 0 health: a wound, or (already wounded) the harm table.
     if ( !u.wounded ) {
       u.wounded = true;
-      return { text: `${base}at 0 health: wounded`, data: { ...data, wounded: true } };
+      return { text: base + t("Endure.Wounded", "at 0 health: wounded"), data: { ...data, wounded: true } };
     }
     const d100 = rng.die(100);
     const result = harmTable(d100);
@@ -265,29 +266,30 @@ export const ironswornRules = {
       said.faceDeath = face.degree;
       if ( face.degree <= 1 ) {
         u.status = STATUS.DEAD;
-        return { text: `${base}the harm is mortal (d100 ${d100}); ${m.face.name}: miss. Dies`, data: said };
+        return { text: base + t("Endure.MortalDies", "the harm is mortal (d100 {d100}); {face}: miss. Dies", { d100, face: m.face.name }), data: said };
       }
       u.status = STATUS.DOWN;
       u.stable = true;
       u.deathbound = face.degree === 2;
-      return { text: `${base}the harm is mortal (d100 ${d100}); ${m.face.name}: ${face.degree === 3 ? "cast back into the world" : "lives, bound to a deathbound quest"}, out of the fight`, data: said };
+      return { text: base + (face.degree === 3 ? t("Endure.MortalBack", "the harm is mortal (d100 {d100}); {face}: cast back into the world, out of the fight", { d100, face: m.face.name })
+        : t("Endure.MortalBound", "the harm is mortal (d100 {d100}); {face}: lives, bound to a deathbound quest, out of the fight", { d100, face: m.face.name })), data: said };
     }
     if ( result === "dying" ) {
       u.status = STATUS.DOWN;
       u.stable = false;
       u.dying = 1;
-      return { text: `${base}dying (d100 ${d100}): needs healing within an hour or two`, data: said };
+      return { text: base + t("Endure.Dying", "dying (d100 {d100}): needs healing within an hour or two", { d100 }), data: said };
     }
     if ( result === "out" ) {
       u.status = STATUS.DOWN;
       u.stable = true;
-      return { text: `${base}out cold (d100 ${d100})`, data: said };
+      return { text: base + t("Endure.Out", "out cold (d100 {d100})", { d100 }), data: said };
     }
     if ( result === "reeling" ) {
       setMomentum(u, momentumOf(u) - 1);
-      return { text: `${base}reeling (d100 ${d100}; -1 momentum)`, data: said };
+      return { text: base + t("Endure.Reeling", "reeling (d100 {d100}; -1 momentum)", { d100 }), data: said };
     }
-    return { text: `${base}still standing (d100 ${d100})`, data: said };
+    return { text: base + t("Endure.Standing", "still standing (d100 {d100})", { d100 }), data: said };
   },
 
   /* Dying ----------------------------------------------------------------- */

@@ -12,7 +12,7 @@ export const MODULE_ID = "fast-fighting-ironsworn";
 const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 
 /** The core API this helper is written against (its system hooks for dice and moves of their own). */
-const NEEDS_API = 7;
+const NEEDS_API = 8;
 
 Hooks.once("init", () => {
   // How much a Lore-Collector's sizing a foe up pays off (lore.js).

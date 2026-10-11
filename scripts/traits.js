@@ -3,6 +3,7 @@
  * A foe is read from what it is (the folder its compendium files it under: Ironlanders, Firstborn, Animals, Beasts,
  * Horrors, Anomalies; or its words), and its rank: the higher, the bolder. Pure, unit-tested.
  */
+import { t, statName } from "./words.js";
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 /** What kind of foe this is, from its compendium folder or its name and words. */
@@ -39,10 +40,10 @@ export function deriveIronswornTraits({ pc, rank = 2, nature = "people", stats =
     const brave = clamp(55 + 5 * (stats.iron ?? 1) + 3 * (stats.heart ?? 1), 45, 90);
     const selfish = clamp(25 + 4 * (stats.shadow ?? 1) - 3 * (stats.heart ?? 1), 5, 60);
     const loyal = clamp(60 + 5 * (stats.heart ?? 1), 50, 95);
-    reasons.tactical = `wits ${stats.wits ?? 1}`;
-    reasons.brave = `iron ${stats.iron ?? 1}, heart ${stats.heart ?? 1}`;
-    reasons.selfish = `shadow ${stats.shadow ?? 1}`;
-    reasons.loyal = `heart ${stats.heart ?? 1}: sworn to their companions`;
+    reasons.tactical = `${statName("wits")} ${stats.wits ?? 1}`;
+    reasons.brave = `${statName("iron")} ${stats.iron ?? 1}, ${statName("heart")} ${stats.heart ?? 1}`;
+    reasons.selfish = `${statName("shadow")} ${stats.shadow ?? 1}`;
+    reasons.loyal = t("Reason.Sworn", "{heart} {n}: sworn to their companions", { heart: statName("heart"), n: stats.heart ?? 1 });
     return { traits: { tactical, brave, selfish, loyal }, flags, reasons };
   }
   const r = clamp(Number(rank) || 2, 1, 5);
@@ -55,10 +56,11 @@ export function deriveIronswornTraits({ pc, rank = 2, nature = "people", stats =
     machine: { tactical: 45, brave: 90, selfish: 40, loyal: 80 }
   }[nature] ?? { tactical: 50, brave: 50, selfish: 50, loyal: 50 };
   const traits = { ...base, brave: clamp(base.brave + 5 * (r - 2), 5, 100) };
-  reasons.tactical = `${nature}`;
-  reasons.brave = `${nature}, rank ${r}`;
-  reasons.selfish = `${nature}`;
-  reasons.loyal = `${nature}`;
+  const kind = t(`Nature.${nature}`, nature);
+  reasons.tactical = kind;
+  reasons.brave = t("Reason.Rank", "{nature}, rank {r}", { nature: kind, r });
+  reasons.selfish = kind;
+  reasons.loyal = kind;
   if ( nature === "horror" || nature === "machine" ) flags.fearless = true;
   if ( nature === "animal" || nature === "beast" ) flags.beast = true;
   return { traits, flags, reasons };

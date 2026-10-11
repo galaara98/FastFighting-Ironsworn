@@ -1,0 +1,114 @@
+{
+  "FFIRONSWORN": {
+    "CoreTooOld": "FastFighting Ironsworn necesita una versión más reciente de FastFighting Core. Actualiza FastFighting.",
+    "NeedsCore": "FastFighting Ironsworn necesita el módulo FastFighting. Actívalo en Gestionar módulos.",
+    "Momentum": "Impulso",
+    "CompelHeart": "Persuadir (corazón)",
+    "CompelIron": "Persuadir (hierro)",
+    "CompelShadow": "Persuadir (sombra)",
+    "Compel": "Persuadir",
+    "Rank": "rango",
+    "Heart": "corazón",
+    "Settings": {
+      "rulesPreference": {
+        "Name": "Preferencia de reglas",
+        "Hint": "Con más de un reglamento activo, Ironsworn, Starforged y Sundered Isles tienen movimientos con el mismo nombre que se juegan de forma distinta (Golpear, Choque, Soportar daño, Entrar en la refriega). Seguir las fichas de personaje: cada personaje hace los movimientos de la ficha en la que está ahora (los de una ficha de Ironsworn, los de una de Starforged), aunque esa ficha muestre también movimientos de otros reglamentos. Preferir un reglamento: donde tenga un movimiento con el mismo nombre (y el mundo lo tenga activo), cada personaje hace la versión de ese reglamento. Los movimientos que se llaman distinto (Terminar la pelea, Tomar una acción decisiva) siguen siendo siempre los del personaje.",
+        "sheet": "Seguir las fichas de personaje",
+        "classic": "Preferir Ironsworn",
+        "starforged": "Preferir Starforged",
+        "sundered_isles": "Preferir Sundered Isles"
+      },
+      "deadlyWeapons": {
+        "Name": "Los personajes luchan con armas mortíferas",
+        "Hint": "Ironsworn: un arma mortífera (una espada, un hacha, una lanza, un arco) inflige 2 de daño; un ataque sin armas o un arma sencilla, 1. Activado, los personajes golpean con 2 de daño (3 con un Golpear fuerte); desactivado, 1. Solo el Golpear y el Choque de Ironsworn infligen daño así; los de Starforged marcan progreso."
+      },
+      "loreBoost": {
+        "Name": "Ventaja del Coleccionista de saber",
+        "Hint": "Cuánto más probable es que el siguiente ataque o Persuadir (persuadir, amenazar, engañar) de un Coleccionista de saber tenga éxito después de Asegurar una ventaja para estudiar a un enemigo (con un acierto; nunca sin él). 1,25× es un empujoncito; 3×, casi siempre un éxito seguro. Por defecto 2,35×: lo que hace falta para que esa tirada compense el movimiento que costó, con +3 de ingenio acertando el 77 % de las veces y un fallo pagando el precio. Los dados de Ironsworn limitan una tirada cerca del 95 %, así que un Golpear obtiene todo lo posible hacia 1,5×; el resto ayuda a Persuadir a un enemigo más duro."
+      }
+    },
+    "SecureAnAdvantage": "Asegurar una ventaja",
+    "AtRange": " (a distancia)",
+    "Attack": "Ataque",
+    "MomentumChange": ", {n} de impulso",
+    "MoveRoll": "{move} (+{stat} {total} contra {dice}): {what}",
+    "TheRoll": "la tirada",
+    "Burn": {
+      "Strong": "quema impulso ({n}): {label} es un acierto fuerte",
+      "Weak": "quema impulso ({n}): {label} es un acierto débil"
+    },
+    "Endure": {
+      "ShakeCost": "se lo sacude (+1 de salud, -{n} de impulso)",
+      "Shake": "se lo sacude (+1 de salud)",
+      "Embrace": "abraza el dolor (+1 de impulso)",
+      "PressTrade": "sigue adelante (+1 de salud, -1 de impulso)",
+      "Press": "sigue adelante",
+      "WorseHealth": "peor de lo que parecía (-1 de salud)",
+      "WorseMomentum": "peor de lo que parecía (-2 de impulso)",
+      "Reels": "se tambalea (-1 de impulso)",
+      "Wounded": "a 0 de salud: herido",
+      "MortalDies": "el daño es mortal (d100 {d100}); {face}: fallo. Muere",
+      "MortalBack": "el daño es mortal (d100 {d100}); {face}: devuelto al mundo, fuera de la pelea",
+      "MortalBound": "el daño es mortal (d100 {d100}); {face}: vive, atado a una búsqueda ligada a la muerte, fuera de la pelea",
+      "Dying": "agonizante (d100 {d100}): necesita curación en una o dos horas",
+      "Out": "sin sentido (d100 {d100})",
+      "Reeling": "tambaleándose (d100 {d100}; -1 de impulso)",
+      "Standing": "sigue en pie (d100 {d100})"
+    },
+    "Move": {
+      "Strike": "Golpear",
+      "Clash": "Choque",
+      "EndtheFight": "Terminar la pelea",
+      "TakeDecisiveAction": "Tomar una acción decisiva",
+      "SecureanAdvantage": "Asegurar una ventaja",
+      "GainGround": "Ganar terreno",
+      "AidYourAlly": "Ayudar a tu aliado",
+      "EntertheFray": "Entrar en la refriega",
+      "EndureHarm": "Soportar daño",
+      "PaythePrice": "Pagar el precio",
+      "FaceDeath": "Enfrentarse a la muerte"
+    },
+    "Control": {
+      "hasinitiative": "tiene la iniciativa",
+      "losesinitiative": "pierde la iniciativa",
+      "isincontrol": "tiene el control",
+      "isinabadspot": "está en apuros"
+    },
+    "Stat": {
+      "edge": "filo",
+      "heart": "corazón",
+      "iron": "hierro",
+      "shadow": "sombra",
+      "wits": "ingenio"
+    },
+    "Nature": {
+      "people": "gente",
+      "firstborn": "primogénito",
+      "animal": "animal",
+      "beast": "bestia",
+      "horror": "horror",
+      "machine": "máquina"
+    },
+    "Reason": {
+      "Sworn": "{heart} {n}: unido por juramento a sus compañeros",
+      "Rank": "{nature}, rango {r}"
+    },
+    "Out": {
+      "Health": "Salud {from} → {to}",
+      "Momentum": "Impulso {from} → {to}",
+      "Burned": " (quemado {n}×)",
+      "Wounded": "Herido",
+      "Dies": "MUERE",
+      "Deathbound": "Sobrevive a Enfrentarse a la muerte, atado a una búsqueda ligada a la muerte; sin sentido",
+      "Cold": "Sin sentido",
+      "Dying": "Agonizante: necesita curación en una o dos horas, o Enfrentarse a la muerte",
+      "Retreated": "Se retiró de la pelea",
+      "Beaten": "Vencido: medidor completo ({n}/10)",
+      "Progress": "Progreso {from}/10 → {to}/10 ({n} marcas)",
+      "TalkedAway": "Convencido de irse (ficha oculta)",
+      "Fled": "Huyó (ficha oculta)",
+      "Surrenders": "Se rinde",
+      "StandsDown": "Se retira"
+    }
+  }
+}

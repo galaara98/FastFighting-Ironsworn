@@ -9,6 +9,7 @@
  * In the engine's terms: a strong hit is a critical success (3), a weak hit a success (2), a miss a failure (1), and
  * a miss on matching dice a critical failure (0).
  */
+import { t, moveName } from "./words.js";
 
 /** How many ticks of a 40-tick track one mark of progress fills at each challenge rank (1 troublesome ... 5 epic). */
 export const TICKS = Object.freeze({ 1: 12, 2: 8, 3: 4, 4: 2, 5: 1 });
@@ -76,12 +77,25 @@ export function movesFor(own, preference = null, enabled = null) {
   const base = RULESETS[own] ?? CLASSIC;
   const moves = { ...base, ruleset: RULESETS[own] ? own : "classic" };
   const preferred = RULESETS[preference];
-  if ( !preferred || preference === moves.ruleset || (enabled && !enabled.includes(preference)) ) return moves;
+  if ( !preferred || preference === moves.ruleset || (enabled && !enabled.includes(preference)) ) return named(moves);
   for ( const key of OWN_MOVES[preference] ) {
     const move = preferred[key];
     if ( move?.name && moves[key]?.name === move.name ) moves[key] = move;
   }
-  return moves;
+  return named(moves);
+}
+
+/** The moves named in the reader's language (worked out after they're matched by their English names). */
+function named(moves) {
+  const out = { ...moves };
+  for ( const [key, move] of Object.entries(moves) ) if ( move?.name ) out[key] = { ...move, name: moveName(move.name) };
+  if ( moves.control ) {
+    out.control = {
+      on: t(`Control.${moves.control.on.replace(/[^A-Za-z]/g, "")}`, moves.control.on),
+      off: t(`Control.${moves.control.off.replace(/[^A-Za-z]/g, "")}`, moves.control.off)
+    };
+  }
+  return out;
 }
 
 /** A roll's degree from its score and the challenge dice: 3 strong hit, 2 weak hit, 1 miss, 0 a miss on a match. */
