@@ -10,6 +10,8 @@
  * A foe: its progress track (its rank, and the ticks already marked) and what it is (the folder its compendium files
  * it under: Ironlanders, Firstborn, Animals, Beasts, Horrors; or its words), which says whether it can be talked to and
  * how it fights.
+ * The encounter (the planner's Ironsworn section, conflict.js): one track for it (Starforged's objective, at the rank
+ * the GM gives it, kept on one of the characters) or each foe's own (Ironsworn's).
  */
 import { SystemAdapter } from "./core.js";
 import { ironswornRules } from "./rules.js";
@@ -18,7 +20,8 @@ import { loreBoost } from "./lore.js";
 import { movesFor } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
-import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf } from "./commit.js";
+import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
+import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t } from "./words.js";
 
 /** Assets (and the like) for fighting at range. */
@@ -125,6 +128,9 @@ export class IronswornAdapter extends SystemAdapter {
       momentumReset: Number(sys.momentumReset ?? sys.momentum?.resetValue ?? 2),
       momentumMax: Number(sys.momentumMax ?? sys.momentum?.max ?? 10),
       wounded: !!sys.debility?.wounded,
+      // Spirit, for stress (mental shock, despair); shaken, already.
+      spirit: { value: meterOf(actor, "spirit"), max: Number(sys.spirit?.max ?? 5) || 5 },
+      shaken: !!sys.debility?.shaken,
       control: position === "inControl" ? true : position === "inABadSpot" ? false : undefined,
       // No coins or goods: paying costs Supply, which the side shares (what one pays, all have that much less of).
       valuables: { money: supplyOf(actor), denominations: [{ label: game.i18n.localize("IRONSWORN.Supply"), value: 1 }], stowed: [], wielded: [], pooled: true },
@@ -228,7 +234,75 @@ export class IronswornAdapter extends SystemAdapter {
     return rankIronswornLeaders(specs.map(s => s.leadership).filter(Boolean));
   }
 
-  /** Ironsworn has no armor class (the planner leaves it out); its harm takes FastFighting's generic word. */
+  /**
+   * How this encounter is tracked: the planner's answers (setup.system), else the defaults. One track for the encounter
+   * where any character plays Starforged's moves, at its most dangerous foe's rank, kept on the party's leader (else
+   * its first character); else each foe's own.
+   */
+  #conflict({ roster, resolved, setup, leaderId = null }) {
+    const sideOf = e => resolved[e.token.id];
+    const friendly = roster.filter(e => sideOf(e) === "friendly" && e.spec.mover);
+    const foes = roster.filter(e => sideOf(e) && sideOf(e) !== "friendly" && sideOf(e) !== "neutralParty" && !e.spec.mover && !e.spec.hazard);
+    const asked = setup.system ?? {};
+    const mode = TRACK_MODES.includes(asked.track) ? asked.track : defaultMode(friendly.map(e => e.spec.ruleset));
+    const rank = rankOf(asked.rank) ?? defaultRank(foes.map(e => e.spec.rank));
+    const holder = friendly.find(e => e.token.id === asked.holder) ?? friendly.find(e => e.token.id === leaderId) ?? friendly[0] ?? null;
+    return { mode, rank, holder, friendly, foes };
+  }
+
+  /** The planner's Ironsworn section: how the encounter is tracked, and (one track) its rank and who keeps it. */
+  plannerSettings({ roster, setup, resolved, chains }) {
+    const plan = this.#conflict({ roster, resolved, setup, leaderId: chains?.friendly?.[0]?.id ?? null });
+    const fields = [{
+      key: "track", type: "pills", label: t("Conflict.Track"), hint: t("Conflict.TrackHint"), value: plan.mode,
+      choices: [
+        { value: "encounter", label: t("Conflict.Encounter"), hint: t("Conflict.EncounterHint") },
+        { value: "foes", label: t("Conflict.Foes"), hint: t("Conflict.FoesHint") }
+      ]
+    }];
+    if ( plan.mode === "encounter" ) {
+      fields.push({
+        key: "rank", type: "pills", label: t("Conflict.Rank"), hint: t("Conflict.RankHint"), value: String(plan.rank),
+        choices: Object.entries(RANK_KEYS).map(([r, k]) => ({ value: r, label: game.i18n.localize(`IRONSWORN.CHALLENGERANK.${k}`) }))
+      });
+      if ( plan.friendly.length ) {
+        fields.push({
+          key: "holder", type: "select", label: t("Conflict.Holder"), hint: t("Conflict.HolderHint"), value: plan.holder?.token.id ?? "",
+          choices: plan.friendly.map(e => ({ value: e.token.id, label: e.spec.name }))
+        });
+      }
+    }
+    return { title: t("Conflict.Title"), hint: t("Conflict.Hint"), fields };
+  }
+
+  /**
+   * One track for the encounter: every foe joins it (conflict.js), starting where the track kept on that character
+   * stands (the one this scene's encounters keep there), and Make it So is told where it's kept.
+   */
+  applyPlannerSettings(spec, settings, { roster, resolved, setup }) {
+    const plan = this.#conflict({ roster, resolved, setup, leaderId: spec.command?.friendly?.[0]?.id ?? null });
+    spec.options.system = { mode: plan.mode, rank: plan.rank, friendly: "friendly" };
+    if ( plan.mode !== "encounter" ) return;
+    const actor = plan.holder?.token.actor ?? null;
+    const track = actor ? encounterTrack(actor, canvas.scene?.id) : null;
+    const before = Number(track?.system.current) || 0;
+    const onTrack = new Set(plan.foes.map(e => e.token.id));
+    spec.combatants = spec.combatants.map(c => (onTrack.has(c.id) ? joinEncounter(c, { rank: plan.rank, current: before }) : c));
+    Object.assign(spec.options.system, {
+      before, foeIds: [...onTrack], holderTokenId: plan.holder?.token.id ?? null, holderName: plan.holder?.spec.name ?? "", trackId: track?.id ?? null
+    });
+  }
+
+  /** The encounter's track, for Make it So's confirmation. */
+  describeEncounter(spec, replay) {
+    return describeEncounterTrack(spec.options?.system, replay);
+  }
+
+  /** The encounter's track, written on the character who keeps it. */
+  async commitEncounter(spec, replay, options) {
+    return commitEncounterTrack(spec.options?.system, replay);
+  }
+
   /** Ironsworn's words: no armor class; paying costs Supply. */
   term(key) {
     if ( key === "money" ) return game.i18n.localize("IRONSWORN.Supply");

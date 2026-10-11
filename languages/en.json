@@ -56,6 +56,45 @@
       "Reeling": "reeling (d100 {d100}; -1 momentum)",
       "Standing": "still standing (d100 {d100})"
     },
+    "Stress": {
+      "ShakeCost": "shakes it off (+1 spirit, -{n} momentum)",
+      "Shake": "shakes it off (+1 spirit)",
+      "Embrace": "embraces the darkness (+1 momentum)",
+      "PressTrade": "presses on (+1 spirit, -1 momentum)",
+      "Press": "presses on",
+      "WorseSpirit": "worse than it seemed (-1 spirit)",
+      "WorseMomentum": "worse than it seemed (-2 momentum)",
+      "Reels": "falters (-1 momentum)",
+      "Shaken": "at 0 spirit: shaken",
+      "Desolate": "overwhelmed (d100 {d100}); {face}: miss. Gives up the fight",
+      "DesolateHolds": "overwhelmed (d100 {d100}); {face}: holds on",
+      "Falters": "falters (d100 {d100}; -1 momentum)",
+      "Perseveres": "perseveres (d100 {d100})"
+    },
+    "CompelOutcome": {
+      "Strong": "+1 momentum",
+      "Price": "{price}",
+      "Demand": "a demand that costs dearly (-1 {what})"
+    },
+    "Conflict": {
+      "Title": "Conflict",
+      "Hint": "How this encounter is tracked, as Ironsworn and Starforged play it: success is progress on a track; things going wrong cost health, spirit or supply.",
+      "Track": "Track",
+      "TrackHint": "One track for the encounter (Starforged's objective, kept on one character), or each foe's own track (Ironsworn's).",
+      "Encounter": "One for the encounter",
+      "EncounterHint": "Every hit (and every success in words) marks progress on one track, at the rank below. Take Decisive Action wins the objective; a miss loses it.",
+      "Foes": "Each foe's own",
+      "FoesHint": "Harm marks progress on each foe's own track, at its own rank. End the Fight takes that foe out of it.",
+      "Rank": "Rank",
+      "RankHint": "How hard the objective is: how much each mark fills, and how many successes it takes to talk a foe round.",
+      "Holder": "Kept on",
+      "HolderHint": "The character whose sheet keeps the encounter's track (the others can follow it by hand).",
+      "Record": "Encounter track",
+      "TrackName": "{scene}",
+      "Progress": "Progress {from}/10 → {to}/10 ({rank}), on {holder}'s sheet",
+      "Achieved": "objective achieved",
+      "Lost": "objective lost"
+    },
     "Move": {
       "Strike": "Strike",
       "Clash": "Clash",
@@ -67,7 +106,9 @@
       "EntertheFray": "Enter the Fray",
       "EndureHarm": "Endure Harm",
       "PaythePrice": "Pay the Price",
-      "FaceDeath": "Face Death"
+      "FaceDeath": "Face Death",
+      "EndureStress": "Endure Stress",
+      "FaceDesolation": "Face Desolation"
     },
     "Control": {
       "hasinitiative": "has initiative",
@@ -96,6 +137,8 @@
     },
     "Out": {
       "Health": "Health {from} → {to}",
+      "Spirit": "Spirit {from} → {to}",
+      "Shaken": "Shaken",
       "Momentum": "Momentum {from} → {to}",
       "Burned": " (burned {n}×)",
       "Wounded": "Wounded",
@@ -105,6 +148,7 @@
       "Dying": "Dying: needs healing within an hour or two, or Face Death",
       "Retreated": "Retreated from the fight",
       "Beaten": "Beaten: track complete ({n}/10)",
+      "Defeated": "Beaten (the encounter's track)",
       "Progress": "Progress {from}/10 → {to}/10 ({n} ticks)",
       "TalkedAway": "Talked into leaving (token hidden)",
       "Fled": "Fled (token hidden)",

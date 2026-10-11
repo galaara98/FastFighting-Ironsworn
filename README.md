@@ -25,6 +25,18 @@ https://github.com/galaara98/FastFighting-Ironsworn/releases/latest/download/mod
 - **Fighting at range:** a character with an asset for it (Archer, Slinger, Gunner, Sniper, a sidearm ...), or more edge than iron, can Strike and Clash at a distance (+edge) as well as up close (+iron).
 - **Foes:** the foe's progress track: its rank (troublesome to epic) and the ticks already marked on it. What it is comes from where its compendium files it (Ironlanders, Firstborn, Animals, Beasts, Horrors, Anomalies) or its words: people and the Firstborn can be talked to; horrors and machines don't break; beasts fight on instinct; the higher the rank, the bolder.
 
+## A conflict
+
+As the game plays it, success is progress on a track, and things going wrong cost health (harm), spirit (stress, despair) or supply (anything material lost), and momentum. The planner has a **Conflict** row for it:
+
+- **Track:**
+  - **One for the encounter** (Starforged's objective; the default where anyone plays Starforged or Sundered Isles): every foe is part of one track. Every Strike and Clash marks progress on it, at the encounter's rank, whichever foe it's aimed at, and every success in words marks it too (a strong hit twice). Fill it and the foes are beaten together; Take Decisive Action, once it's well along (seven boxes), is a progress roll against it: a hit achieves the objective, a miss loses it, and the fight with it.
+  - **Each foe's own** (Ironsworn's, the default otherwise): harm marks progress on each foe's own track, at its own rank, and End the Fight takes that foe out of it.
+- **Rank** (one track): Troublesome to Epic, how hard the objective is: how much each mark fills (troublesome 3 boxes, dangerous 2, formidable 1, extreme 2 ticks, epic 1), and how many successes it takes to talk a foe round (2, 3, 6, 12, 24). By default, its most dangerous foe's.
+- **Kept on** (one track): the character whose sheet keeps the track (the party's leader by default); the others can follow it by hand. Make it So writes it there: the track it keeps for this scene's encounters, else a new one named for the scene, completed when the objective is achieved.
+
+Either way, a foe's own rank says how hard it hits back.
+
 ## How a fight plays
 
 The characters make the moves, as in the game; foes never roll.
@@ -37,7 +49,8 @@ The characters make the moves, as in the game; foes never roll.
 - **Burning momentum:** when it turns a miss into a hit (or, with plenty to spare, a weak hit into a strong one); momentum resets after. Never on a progress roll.
 - **Securing an advantage** (in control), with the character's best approach (its highest stat): Ironsworn's **Secure an Advantage** (a strong hit: +1 on the next move; a weak hit: +1 momentum) or Starforged's **Gain Ground** (a strong hit: +1 on the next move and +2 momentum; a weak hit: +1 on the next move). **Aid Your Ally** gives the same to a friend, and a strong hit puts both in control. A miss pays the price: -1 momentum, and the upper hand lost. A Strike usually does more, so a character secures an advantage when it fights poorly next to a friend who fights well, when it's set on helping (a stated desire), or when a friend asks it to (a friend's "Be bolstered by" desire, and a language in common). Momentum counts for something: a step toward burning it.
 - **A Lore-Collector** sizes a foe up by Securing an Advantage, assessing it (+wits). A hit makes its next attack, or its next Compel (persuading, threatening, deceiving), likelier to succeed, at whoever it's aimed, by the **Lore-Collector advantage** setting (1.25× to 3×; default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price). Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5× (+2 iron) or 1.75× (+1); the rest helps Compel a hardier foe, where the odds start low. A miss pays the price.
-- **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank.
+- **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank. A strong hit: +1 momentum. A miss pays the price: a refusal that weighs on the character (Endure Stress, 1); a miss on matching dice is also a demand that costs it dearly (a point of supply, to whoever it was talking to).
+- **Stress:** a horror's price is dread (Endure Stress, its rank) rather than harm. **Endure Stress** plays as Endure Harm does, on spirit (+spirit or +heart): a strong hit shakes it off or embraces the darkness (+1 momentum); a weak hit presses on; a miss costs momentum (Starforged: worse than it seemed). At 0 spirit a miss marks the character shaken; already shaken, it may falter (-1 momentum) or be overwhelmed: Face Desolation (+heart), and on a miss it gives up the fight.
 - **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise.
 
 ## Rules preference
@@ -49,7 +62,8 @@ With more than one ruleset on in the world, Ironsworn, Starforged and Sundered I
 
 ## Make it So
 
-- A character: health, momentum, a wound marked, and how it ended (out cold, dying, dead, or deathbound after Face Death).
+- A character: health, spirit, momentum, a wound or shaken marked, and how it ended (out cold, dying, dead, or deathbound after Face Death).
+- One track for the encounter: its progress, on the sheet of the character who keeps it (completed when the objective is achieved); the foes' own tracks are left as they were.
 - A foe: progress marked on its track, the track completed when it was beaten (and its token marked defeated); a foe that fled is hidden.
 - Supply paid: lowered for every character on the payer's side, and (with the system's Shared Supply Tracker on, as it is by default) every character and starship it shares Supply with. Ground given: a mark of progress on the foe's track.
 

@@ -25,6 +25,7 @@ export const MOMENTUM = Object.freeze({ min: -6, max: 10, reset: 2 });
  *  - endure: Endure Harm: what shaking it off costs, whether a weak hit can trade momentum for health, what a miss
  *    costs.
  *  - finish, price, face: End the Fight / Take Decisive Action, Pay the Price, Face Death (they play alike here).
+ *  - stress, desolation: Endure Stress (played as Endure Harm is, on spirit) and Face Desolation.
  *  - advantage: Secure an Advantage (Starforged's fight: Gain Ground), in control: what a strong and a weak hit give
  *    (`next`: +1 on the next move; `momentum`); a miss pays the price. aid: Aid Your Ally, the same for a friend
  *    (a strong hit in a fight puts both in control).
@@ -43,6 +44,8 @@ const CLASSIC = Object.freeze({
   endure: { key: "EndureHarm", shakeCost: 1, weakTrade: false, miss: "momentum" },
   price: { key: "PaythePrice" },
   face: { key: "FaceDeath" },
+  stress: { key: "EndureStress" },
+  desolation: { key: "FaceDesolation" },
   control: { on: "hasinitiative", off: "losesinitiative" }
 });
 const STARFORGED = Object.freeze({
@@ -56,6 +59,8 @@ const STARFORGED = Object.freeze({
   endure: { key: "EndureHarm", shakeCost: 0, weakTrade: true, miss: "worse" },
   price: { key: "PaythePrice" },
   face: { key: "FaceDeath" },
+  stress: { key: "EndureStress" },
+  desolation: { key: "FaceDesolation" },
   control: { on: "isincontrol", off: "isinabadspot" }
 });
 const SUNDERED_ISLES = Object.freeze({ ...STARFORGED, fray: { ...STARFORGED.fray } });
@@ -135,6 +140,17 @@ export function chances(mod, { adds = 0, progress = false } = {}) {
 export function burnGrade(momentum, challenge) {
   if ( !(momentum > 0) ) return null;
   return grade(momentum, challenge);
+}
+
+/**
+ * At 0 spirit and missing an Endure Stress, a character already shaken rolls d100: 1-10 it's overwhelmed (Face
+ * Desolation), 11-50 it falters, 51-100 it perseveres. (The books' tables say more; this is what matters in a fight.)
+ * @returns {"desolation"|"falters"|"perseveres"}
+ */
+export function stressTable(d100) {
+  if ( d100 <= 10 ) return "desolation";
+  if ( d100 <= 50 ) return "falters";
+  return "perseveres";
 }
 
 /**

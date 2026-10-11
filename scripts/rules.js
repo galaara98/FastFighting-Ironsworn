@@ -12,11 +12,17 @@
  * Decisive Action), a progress roll: a hit ends that foe's part in the fight; a miss loses it, and the price is paid.
  * Momentum is burned when it turns a miss into a hit (or a weak hit into a strong one, when there's plenty).
  *
+ * Spirit: horrors' price is stress (Endure Stress, on spirit, as Endure Harm is on health; at 0 spirit, shaken, then
+ * the stress table, where Face Desolation may make it give up the fight). Talking is Compel: a strong hit +1 momentum;
+ * a miss pays the price in stress, and a miss on matching dice is a demand that costs dearly, a point of supply.
+ * One track for the encounter (conflict.js): Take Decisive Action once it's well along (7 boxes); a miss loses the
+ * objective, and the fight with it.
+ *
  * Who's in a fight is "a mover" (spec.mover: a character, who rolls) or a foe (spec.rank). Foes still act against
  * creatures that aren't characters (a companion, a hired hand), with a plain attack.
  */
 import { DOWNED_MODELS, STATUS } from "./core.js";
-import { movesFor, MOMENTUM, grade, chances, burnGrade, harmTable } from "./moves.js";
+import { movesFor, MOMENTUM, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
 import { t, statName } from "./words.js";
 
 const BASE_DC = 10;
@@ -68,6 +74,9 @@ export const ironswornRules = {
   initUnit(u) {
     if ( !isMover(u) ) return;
     u.wounded = !!u.spec.wounded;
+    u.spirit = clamp(Number(u.spec.spirit?.value ?? 5), 0, Number(u.spec.spirit?.max ?? 5));
+    u.spiritMax = Number(u.spec.spirit?.max ?? 5);
+    u.shaken = !!u.spec.shaken;
     u.momentumMax = u.spec.momentumMax ?? MOMENTUM.max;
     if ( typeof u.spec.control === "boolean" ) u.control = u.spec.control;
   },
@@ -112,7 +121,8 @@ export const ironswornRules = {
     if ( !isMover(u) || !action.move ) return true;
     if ( action.move === "strike" ) return !!u.control;
     if ( action.move === "clash" ) return !u.control;
-    if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= 5;
+    // (The encounter's objective: only well along, since a miss loses it.)
+    if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= (target.spec.sharedHp ? 7 : 5);
     // Securing an advantage (Secure an Advantage, Gain Ground, Aid Your Ally) is for one in control.
     if ( action.move === "advantage" ) return !!u.control;
     return true;
@@ -194,6 +204,8 @@ export const ironswornRules = {
     else if ( move === "clash" ) u.control = roll.degree === 3;
     else if ( move === "finish" ) {
       u.control = roll.degree >= 2;
+      // One track for the encounter: a miss loses the objective, and the fight with it.
+      if ( roll.degree <= 1 && ctx.target?.spec.sharedHp ) run.resolved ??= { side: ctx.target.side, outcome: "objectiveLost" };
       // A weak hit wins it, at a cost (here: a little of its edge).
       if ( roll.degree === 2 ) setMomentum(u, momentumOf(u) - 2);
     }
@@ -204,7 +216,30 @@ export const ironswornRules = {
     const pays = degree <= 1 || (action.move === "clash" && degree === 2);
     if ( !pays ) return null;
     const amount = (target.spec.rank ?? 1) + (degree === 0 ? 1 : 0) + (action.move === "finish" && degree <= 1 ? 1 : 0);
+    // A horror's price is dread: stress, not harm.
+    if ( target.spec.nature === "horror" && u.status === STATUS.STANDING ) return { label: movesOf(u).price.name, said: endureStress(run, u, amount, run.rng) };
     return { label: movesOf(u).price.name, damage: harm(amount) };
+  },
+  /**
+   * Compel, for a character: a strong hit, +1 momentum; a miss pays the price, a refusal that weighs on it (Endure
+   * Stress, 1); a miss on matching dice is also a demand that costs it dearly (a point of supply, to whoever it was
+   * talking to).
+   */
+  afterTalk(run, talker, target, roll) {
+    if ( !isMover(talker) || talker.status !== STATUS.STANDING ) return null;
+    if ( roll.degree === 3 ) {
+      setMomentum(talker, momentumOf(talker) + 1);
+      return { text: t("CompelOutcome.Strong"), data: { move: "compel", degree: 3 } };
+    }
+    if ( roll.degree >= 2 ) return null;
+    const lines = [];
+    if ( roll.degree === 0 && supplyLeft(talker) > 0 ) {
+      const v = talker.spec.valuables;
+      (talker.concessions ??= []).push({ kind: "money", amount: 1, denominations: v.denominations ?? null, to: target.id, toName: target.spec.name, round: run.round, price: true });
+      lines.push(t("CompelOutcome.Demand", { what: v.denominations?.[0]?.label ?? "" }));
+    }
+    const said = endureStress(run, talker, 1, run.rng);
+    return { text: [t("CompelOutcome.Price", { price: movesOf(talker).price.name }), ...lines].join(" · ") + ` · ${said.text}`, data: { ...said.data, move: "compel", degree: roll.degree } };
   },
   /**
    * Endure Harm, for a character hurt (and still in the fight). A strong hit shakes it off (+1 health; Ironsworn's at
@@ -378,6 +413,8 @@ export const ironswornRules = {
   /** What Make it So needs beyond the core's: momentum, a wound, who has the initiative, Face Death. */
   capture(u) {
     return {
+      spirit: isMover(u) ? u.spirit ?? null : null,
+      shaken: !!u.shaken,
       momentum: u.resources?.momentum ?? null,
       wounded: !!u.wounded,
       control: u.control ?? null,
@@ -394,6 +431,87 @@ export const ironswornRules = {
     return type === "harm" ? "bludgeoning" : type;
   }
 };
+
+/** What's left of a character's supply, which its side shares (after anything any of them paid). */
+function supplyLeft(u) {
+  const v = u.spec.valuables;
+  if ( !v?.pooled ) return 0;
+  const paid = (u.pool ?? [u]).flatMap(o => o.concessions ?? []).filter(c => !c.kept && c.kind === "money").reduce((s, c) => s + c.amount, 0);
+  return Math.max(0, (v.money ?? 0) - paid);
+}
+
+/**
+ * Endure Stress: -spirit (at 0, the rest comes off momentum), then a roll (+spirit or +heart). It plays as Endure Harm
+ * does, by the ruleset: a strong hit shakes it off (+1 spirit; Ironsworn's at a point of momentum, Starforged's free
+ * if not shaken) or embraces the darkness (+1 momentum); a weak hit presses on (Starforged: a point of momentum for +1
+ * spirit, if not shaken); a miss costs a point of momentum (Starforged: worse than it seemed, -1 spirit or -2
+ * momentum). At 0 spirit on a miss: shaken, or (already shaken) the stress table: overwhelmed, it Faces Desolation
+ * (+heart), and on a miss gives up the fight.
+ * @returns {{text: string, data: object}}
+ */
+export function endureStress(run, u, amount, rng) {
+  const m = movesOf(u);
+  const e = m.endure;
+  const over = Math.max(0, amount - u.spirit);
+  u.spirit = Math.max(0, u.spirit - amount);
+  if ( over ) setMomentum(u, momentumOf(u) - over);
+  const stat = Math.max(u.spirit, u.spec.stats?.heart ?? 1);
+  const roll = actionRoll(rng, stat);
+  const base = t("MoveRoll", { move: m.stress.name, stat, total: roll.total, dice: roll.challenge.join(", "), what: "" });
+  const data = { move: "stress", total: roll.total, challenge: roll.challenge, degree: roll.degree, stress: amount };
+  if ( roll.degree === 3 ) {
+    const can = u.spirit < u.spiritMax && (e.shakeCost ? u.spirit > 0 && momentumOf(u) - e.shakeCost >= resetOf(u) : !u.shaken);
+    if ( can ) {
+      u.spirit += 1;
+      if ( e.shakeCost ) setMomentum(u, momentumOf(u) - e.shakeCost);
+      return { text: base + (e.shakeCost ? t("Stress.ShakeCost", { n: e.shakeCost }) : t("Stress.Shake")), data };
+    }
+    setMomentum(u, momentumOf(u) + 1);
+    return { text: base + t("Stress.Embrace"), data };
+  }
+  if ( roll.degree === 2 ) {
+    if ( e.weakTrade && !u.shaken && u.spirit < u.spiritMax && momentumOf(u) - 1 >= resetOf(u) ) {
+      u.spirit += 1;
+      setMomentum(u, momentumOf(u) - 1);
+      return { text: base + t("Stress.PressTrade"), data };
+    }
+    return { text: base + t("Stress.Press"), data };
+  }
+  if ( e.miss === "worse" ) {
+    if ( u.spirit > 1 ) {
+      u.spirit -= 1;
+      return { text: base + t("Stress.WorseSpirit"), data };
+    }
+    setMomentum(u, momentumOf(u) - 2);
+    if ( u.spirit > 0 ) return { text: base + t("Stress.WorseMomentum"), data };
+  } else {
+    setMomentum(u, momentumOf(u) - 1);
+    if ( u.spirit > 0 ) return { text: base + t("Stress.Reels"), data };
+  }
+  // At 0 spirit: shaken, or (already shaken) the stress table.
+  if ( !u.shaken ) {
+    u.shaken = true;
+    return { text: base + t("Stress.Shaken"), data: { ...data, shaken: true } };
+  }
+  const d100 = rng.die(100);
+  const result = stressTable(d100);
+  if ( result === "desolation" ) {
+    const face = actionRoll(rng, u.spec.stats?.heart ?? 1);
+    if ( face.degree >= 2 ) return { text: base + t("Stress.DesolateHolds", { d100, face: m.desolation.name }), data: { ...data, d100, result, face: face.degree } };
+    // It gives up the fight: out of it, as one who ran.
+    for ( const id of u.adjacent ?? [] ) run.byId.get(id)?.adjacent.delete(u.id);
+    u.adjacent?.clear();
+    u.status = STATUS.FLED;
+    u.fellRound ??= run.round;
+    u.ranRound = run.round;
+    return { text: base + t("Stress.Desolate", { d100, face: m.desolation.name }), data: { ...data, d100, result, face: face.degree, gaveUp: true } };
+  }
+  if ( result === "falters" ) {
+    setMomentum(u, momentumOf(u) - 1);
+    return { text: base + t("Stress.Falters", { d100 }), data: { ...data, d100, result } };
+  }
+  return { text: base + t("Stress.Perseveres", { d100 }), data: { ...data, d100, result } };
+}
 
 /** A foe's progress score: whole boxes filled on its track (4 ticks a box), 0-10. */
 export function progressScore(u) {

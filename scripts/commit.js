@@ -1,7 +1,8 @@
 /**
  * Ironsworn and Starforged "Make it So": write one simulated outcome onto a token's actor, returning an undo record.
- * A character: health, momentum, a wound marked, and how it ended up (out cold, dying, dead). A foe: progress marked on
- * its track (the fight's harm, by its rank), the track completed when it was beaten, and its token marked defeated.
+ * A character: health, spirit, momentum, a wound marked, shaken, and how it ended up (out cold, dying, dead). A foe:
+ * progress marked on its track (the fight's harm, by its rank), the track completed when it was beaten, and its token
+ * marked defeated; on one track for the encounter, that track instead, kept on one of the characters.
  *
  * Undo record shape (consumed by the core's make-it-so.js):
  *   { tokenUuid, actorUuid, actorUpdate, itemUpdates: [{id, update}], createdItems: [id], deletedItems: [data],
@@ -10,6 +11,10 @@
 import { STATUS } from "./core.js";
 import { t } from "./words.js";
 import { TRACK, TICKS } from "./moves.js";
+import { RANK_KEYS, trackProgress, boxes } from "./conflict.js";
+
+/** This module's flags (the encounter a track is kept for). */
+const MODULE = "fast-fighting-ironsworn";
 
 export function statusesOf(actor) {
   const out = new Set(actor?.statuses ?? []);
@@ -26,9 +31,11 @@ const emptyRecord = (tokenDoc, actor) => ({
 /** Ticks a foe's track had marked going in, and coming out. */
 const ticks = hp => Math.max(0, Math.min(TRACK, TRACK - Math.max(0, hp)));
 
-/** Where a character's Supply is kept (a meter with a value, or a number), and how much it has. */
-const supplyPath = actor => (typeof actor?.system?.supply === "object" ? "system.supply.value" : "system.supply");
-export const supplyOf = actor => Math.max(0, Number(foundry.utils.getProperty(actor, supplyPath(actor))) || 0);
+/** Where a character's meter is kept (a meter with a value, or a number: supply, spirit), and how much it has. */
+const meterPath = (actor, key) => (typeof actor?.system?.[key] === "object" ? `system.${key}.value` : `system.${key}`);
+export const meterOf = (actor, key) => Math.max(0, Number(foundry.utils.getProperty(actor, meterPath(actor, key))) || 0);
+const supplyPath = actor => meterPath(actor, "supply");
+export const supplyOf = actor => meterOf(actor, "supply");
 
 /** Does the system share Supply between every character (its own setting)? */
 function sharedSupply() {
@@ -85,12 +92,62 @@ export async function commitIronswornConcession(giverDoc, receiverDoc, concessio
   return records;
 }
 
+/** The track a character keeps for this scene's encounters (one for the encounter, not yet completed), or null. */
+export function encounterTrack(actor, sceneId) {
+  if ( !actor || !sceneId ) return null;
+  return actor.items.find(i => i.type === "progress" && i.getFlag?.(MODULE, "encounter") === sceneId && !i.system.completed) ?? null;
+}
+
+const rankName = rank => game.i18n.localize(`IRONSWORN.CHALLENGERANK.${RANK_KEYS[rank] ?? "Dangerous"}`);
+
+/** The encounter's track, for Make it So's confirmation: {title, lines}, or null when nothing changes on it. */
+export function describeEncounterTrack(plan, replay) {
+  if ( plan?.mode !== "encounter" || !plan.holderTokenId ) return null;
+  const p = trackProgress(plan, replay);
+  if ( p.after === p.before && !p.achieved && !p.lost ) return null;
+  const lines = [t("Conflict.Progress", { from: boxes(p.before), to: boxes(p.after), rank: rankName(plan.rank), holder: plan.holderName ?? "" })];
+  if ( p.achieved ) lines.push(t("Conflict.Achieved"));
+  else if ( p.lost ) lines.push(t("Conflict.Lost"));
+  return { title: t("Conflict.Record"), lines };
+}
+
+/**
+ * The encounter's track, written on the character who keeps it: the one it keeps for this scene's encounters, else a
+ * new one (named for the scene, at the encounter's rank); completed when the objective was achieved. Returns undo
+ * records.
+ */
+export async function commitEncounterTrack(plan, replay) {
+  if ( plan?.mode !== "encounter" || !plan.holderTokenId ) return [];
+  const tokenDoc = canvas.scene?.tokens.get(plan.holderTokenId);
+  const actor = tokenDoc?.actor;
+  if ( !actor ) return [];
+  const p = trackProgress(plan, replay);
+  if ( p.after === p.before && !p.achieved && !p.lost ) return [];
+  const undo = emptyRecord(tokenDoc, actor);
+  const existing = (plan.trackId ? actor.items.get(plan.trackId) : null) ?? encounterTrack(actor, canvas.scene?.id);
+  if ( existing ) {
+    undo.itemUpdates.push({ id: existing.id, update: { "system.current": existing.system.current ?? 0, "system.rank": existing.system.rank, "system.completed": !!existing.system.completed } });
+    await existing.update({ "system.current": p.after, "system.rank": plan.rank, "system.completed": p.achieved });
+  } else {
+    const [item] = await actor.createEmbeddedDocuments("Item", [{
+      type: "progress",
+      name: t("Conflict.TrackName", { scene: canvas.scene?.name ?? "" }),
+      system: { subtype: "progress", rank: plan.rank, current: p.after, completed: p.achieved, hasTrack: true },
+      flags: { [MODULE]: { encounter: canvas.scene?.id ?? null } }
+    }]);
+    if ( item ) undo.createdItems.push(item.id);
+  }
+  return [undo];
+}
+
 /** Human-readable list of what will change, for the confirmation dialog. */
 export function describeIronswornOutcome(spec, final) {
   const lines = [];
   const s = final.system ?? {};
   if ( spec.mover ) {
     if ( final.hp !== spec.hp.value ) lines.push(t("Out.Health", { from: spec.hp.value, to: final.hp }));
+    if ( Number.isFinite(s.spirit) && s.spirit !== spec.spirit?.value ) lines.push(t("Out.Spirit", { from: spec.spirit?.value ?? 0, to: s.spirit }));
+    if ( s.shaken && !spec.shaken ) lines.push(t("Out.Shaken"));
     if ( Number.isFinite(s.momentum) && s.momentum !== spec.resources?.momentum ) lines.push(t("Out.Momentum", { from: spec.resources?.momentum ?? 0, to: s.momentum }) + (s.burned ? t("Out.Burned", { n: s.burned }) : ""));
     if ( s.wounded && !spec.wounded ) lines.push(t("Out.Wounded"));
     if ( final.status === STATUS.DEAD ) lines.push(t("Out.Dies"));
@@ -100,7 +157,10 @@ export function describeIronswornOutcome(spec, final) {
   }
   const before = ticks(spec.hp.value);
   const after = ticks(final.hp);
-  if ( final.status === STATUS.DEAD ) lines.push(t("Out.Beaten", { n: Math.floor(after / 4) }));
+  // (On one track for the encounter, its progress is the encounter's: Make it So writes it once, on its keeper.)
+  if ( spec.sharedHp ) {
+    if ( final.status === STATUS.DEAD ) lines.push(t("Out.Defeated"));
+  } else if ( final.status === STATUS.DEAD ) lines.push(t("Out.Beaten", { n: Math.floor(after / 4) }));
   else if ( after > before ) lines.push(t("Out.Progress", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
   if ( final.status === STATUS.FLED ) lines.push(final.swayed ? t("Out.TalkedAway") : t("Out.Fled"));
   else if ( final.status === STATUS.SURRENDERED ) lines.push(t("Out.Surrenders"));
@@ -133,15 +193,17 @@ export async function commitIronswornOutcome(tokenDoc, spec, final, options = {}
       undo.actorUpdate[path] = before ?? 0;
     };
     set("system.health.value", Math.max(0, final.hp));
+    if ( Number.isFinite(s.spirit) ) set(meterPath(actor, "spirit"), Math.max(0, s.spirit));
     if ( Number.isFinite(s.momentum) ) set("system.momentum.value", s.momentum);
     if ( s.wounded ) set("system.debility.wounded", true);
+    if ( s.shaken ) set("system.debility.shaken", true);
     if ( final.status === STATUS.DEAD ) await setStatus(actor, "dead", true, undo, { overlay: true });
     else if ( final.status === STATUS.DOWN ) await setStatus(actor, "unconscious", true, undo);
     if ( Object.keys(update).length ) await actor.update(update);
     return undo;
   }
-  // A foe: its track, as the fight left it.
-  const track = actor.items.get(spec.progressItemId);
+  // A foe: its track, as the fight left it. (On one track for the encounter: that one, written once, on its keeper.)
+  const track = spec.sharedHp ? null : actor.items.get(spec.progressItemId);
   if ( track ) {
     const marked = ticks(final.hp);
     const change = {};
