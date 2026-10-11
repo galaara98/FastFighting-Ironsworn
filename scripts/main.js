@@ -14,6 +14,12 @@ const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 /** The core API this helper is written against (its system hooks for dice and moves of their own). */
 const NEEDS_API = 8;
 
+/**
+ * The last translation module we knew of for this game system, by language: in a language other than English, this
+ * module's settings recommend it when it isn't on (FastFighting Core's api.adviseTranslation). None known yet.
+ */
+const KNOWN_TRANSLATIONS = {};
+
 Hooks.once("init", () => {
   // How much a Lore-Collector's sizing a foe up pays off (lore.js).
   registerLoreBoost();
@@ -52,6 +58,7 @@ Hooks.once("fastFighting.init", api => {
     return;
   }
   api.registerAdapter("foundry-ironsworn", IronswornAdapter, { priority: 10, source: MODULE_ID });
+  api.adviseTranslation?.(MODULE_ID, "Ironsworn & Starforged", KNOWN_TRANSLATIONS);
 });
 
 /** The rules preference as pills: one click, one on at a time (the setting's own select, hidden, keeps the value). */
