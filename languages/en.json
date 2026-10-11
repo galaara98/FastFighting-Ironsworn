@@ -22,6 +22,7 @@
         "Name": "Characters fight with deadly weapons",
         "Hint": "Ironsworn: a deadly weapon (a sword, an axe, a spear, a bow) inflicts 2 harm, an unarmed attack or a simple weapon 1. On, characters strike for 2 harm (3 on a strong Strike); off, 1. Only Ironsworn's Strike and Clash inflict harm this way; Starforged's mark progress."
       }
-    }
+    },
+    "GatherInformation": "Gather Information"
   }
 }

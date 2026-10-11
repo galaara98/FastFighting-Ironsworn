@@ -85,6 +85,8 @@ export const ironswornRules = {
   attackPenalty() {
     return 0;
   },
+  /** A point on an action roll (a d6 against two d10s) moves far more than one on a d20: about a quarter more hits. */
+  rollPoint: 0.25,
   minimumDamage: 0,
   /** The few saves there are (a foe's attack on a companion): a strong hit avoids it. */
   saveMultiplier(degree) {
@@ -110,7 +112,41 @@ export const ironswornRules = {
     if ( action.move === "strike" ) return !!u.control;
     if ( action.move === "clash" ) return !u.control;
     if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= 5;
+    // Securing an advantage (Secure an Advantage, Gain Ground, Aid Your Ally) is for one in control.
+    if ( action.move === "advantage" ) return !!u.control;
     return true;
+  },
+  /** Momentum a move gives (or costs), within its bounds; anything else as it is. */
+  gainResource(u, key, amount) {
+    if ( key === "momentum" ) {
+      if ( isMover(u) ) setMomentum(u, momentumOf(u) + amount);
+      return;
+    }
+    u.resources[key] = (u.resources[key] ?? 0) + amount;
+  },
+  /**
+   * What momentum is worth to a character: each point a step toward burning it, which turns a miss into a hit. About a
+   * fifth of what one of its Strikes does (against the foes here).
+   */
+  resourceWorth(run, u, key, amount) {
+    if ( key !== "momentum" || !isMover(u) ) return 0;
+    const strike = (u.prep?.offense ?? []).find(a => a.move === "strike");
+    if ( !strike ) return 0;
+    const ticks = Math.max(1, ...run.units.filter(o => o.side !== u.side && o.spec.iwr?.ticksPerHarm).map(o => o.spec.iwr.ticksPerHarm));
+    const [, , weak, strong] = chances(Number(strike.bonus) || 0);
+    const harmOf = parts => (parts ?? []).reduce((s, p) => s + (Number(p.flat) || 0), 0);
+    return amount * 0.2 * ticks * (weak * harmOf(strike.damage) + strong * harmOf(strike.critDamage ?? strike.damage));
+  },
+  /** What else a move's outcome does: the price on a miss (-1 momentum, and the upper hand lost); both in control. */
+  onOutcome(run, by, t, outcome) {
+    if ( outcome?.price && isMover(by) ) {
+      setMomentum(by, momentumOf(by) - 1);
+      by.control = false;
+    }
+    if ( outcome?.takeControl ) {
+      if ( isMover(t) ) t.control = true;
+      if ( isMover(by) ) by.control = true;
+    }
   },
   /** Foes don't roll: they press a character only through the character's own moves. */
   canTarget(run, attacker, target) {

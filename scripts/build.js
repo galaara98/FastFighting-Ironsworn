@@ -36,7 +36,44 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
     id: `${id}.finish`, name: m.finish.name, kind: "strike", cost: 1, move: "finish", progressRoll: true, finish: true, bonus: 0,
     melee: true, reach: 5, range: null, damage: [harm(1)], critDamage: [harm(1)], traits: []
   });
+  out.push(...advantageMoves({ id, stats, moves: m }));
   return out;
+}
+
+/**
+ * Securing an advantage in a fight (in control): Secure an Advantage (Starforged: Gain Ground) for itself, and Aid
+ * Your Ally for a friend, each with its best approach (the stat it would envision it with). What a hit gives, by the
+ * ruleset: +1 on the next move (spent by that move), momentum; a strong hit aiding a friend puts both in control. A
+ * miss pays the price.
+ */
+export function advantageMoves({ id, stats, moves }) {
+  const m = moves ?? movesFor("classic");
+  if ( !m.advantage ) return [];
+  const best = Math.max(...["edge", "heart", "iron", "shadow", "wits"].map(k => Number(stats?.[k]) || 1));
+  const gives = r => {
+    const o = { rounds: 1 };
+    const said = [];
+    if ( r.next ) {
+      o.mods = { attack: r.next, checks: r.next };
+      o.uses = 1;
+      said.push(`+${r.next} on the next move`);
+    }
+    if ( r.momentum ) {
+      o.resources = { momentum: r.momentum };
+      said.push(`+${r.momentum} momentum`);
+    }
+    o.label = said.join(", ");
+    return o;
+  };
+  const price = { price: true, failed: true, rounds: 1, label: m.price.name };
+  const check = { mod: best, dc: 10, label: m.advantage.name };
+  return [
+    { id: `${id}.advantage`, name: m.advantage.name, kind: "buff", targets: "self", cost: 1, move: "advantage", check, traits: [],
+      onDegree: [price, price, gives(m.advantage.weak), gives(m.advantage.strong)] },
+    { id: `${id}.aid`, name: m.aid?.name ?? "Aid Your Ally", kind: "buff", includeSelf: false, cost: 1, move: "advantage", traits: [],
+      range: { increment: 120, max: 120, noPenalty: true }, check: { ...check, label: m.aid?.name ?? "Aid Your Ally" },
+      onDegree: [price, price, gives(m.advantage.weak), { ...gives(m.advantage.strong), takeControl: true }] }
+  ];
 }
 
 /**

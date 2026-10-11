@@ -129,6 +129,8 @@ export class IronswornAdapter extends SystemAdapter {
       flags: { ...derived.flags },
       diesAtZero: false,
       perception: stats.wits,
+      // Sizing a foe up (a Lore-Collector): Gather Information, +wits.
+      sizeUp: { mod: stats.wits, dc: 10, label: game.i18n.localize("FFIRONSWORN.GatherInformation") },
       creatureTraits: ["human"],
       social: {
         pitches: {

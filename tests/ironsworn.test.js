@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { grade, scoreChances, chances, harmTable, movesFor, TICKS } from "../scripts/moves.js";
 import { ironswornRules, progressScore } from "../scripts/rules.js";
-import { characterMoves, foeNumbers } from "../scripts/build.js";
+import { characterMoves, foeNumbers, advantageMoves } from "../scripts/build.js";
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
 import { replay, runBatchSync } from "../../FastFighting/scripts/engine/simulator.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
@@ -200,5 +200,48 @@ describe("rules preference: a move of the same name in another ruleset", () => {
     const starforged = unit(movesFor("starforged"));
     ironswornRules.afterHarm({}, starforged, 1, miss);
     expect([starforged.hp, starforged.resources.momentum]).toEqual([2, 4]);
+  });
+});
+
+describe("securing an advantage", () => {
+  test("Secure an Advantage (Gain Ground in a Starforged fight): what each hit gives, by the ruleset; a miss, the price", () => {
+    const [classic, aid] = advantageMoves({ id: "k", stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 }, moves: movesFor("classic") });
+    expect(classic).toMatchObject({ name: "Secure an Advantage", targets: "self", move: "advantage", check: { mod: 3 } });
+    expect(classic.onDegree[3]).toMatchObject({ mods: { attack: 1, checks: 1 }, uses: 1, label: "+1 on the next move" });
+    expect(classic.onDegree[2]).toMatchObject({ resources: { momentum: 1 }, label: "+1 momentum" });
+    expect(classic.onDegree[1]).toMatchObject({ price: true, failed: true, label: "Pay the Price" });
+    expect(aid).toMatchObject({ name: "Aid Your Ally", includeSelf: false });
+    expect(aid.onDegree[3].takeControl).toBe(true);
+    const [sf] = advantageMoves({ id: "k", stats: { iron: 2 }, moves: movesFor("starforged") });
+    expect(sf.name).toBe("Gain Ground");
+    expect(sf.onDegree[3]).toMatchObject({ mods: { attack: 1 }, resources: { momentum: 2 } });
+    expect(sf.onDegree[2]).toMatchObject({ mods: { attack: 1 }, uses: 1 });
+  });
+
+  test("only in control; the price costs momentum and the upper hand; a strong hit aiding a friend puts both in control", () => {
+    const k = { spec: { mover: true }, control: false, resources: { momentum: 4 }, momentumMax: 10 };
+    const f = { spec: { mover: true }, control: false, resources: { momentum: 2 }, momentumMax: 10 };
+    expect(ironswornRules.usable(null, k, { move: "advantage" }, null)).toBe(false);
+    k.control = true;
+    expect(ironswornRules.usable(null, k, { move: "advantage" }, null)).toBe(true);
+    ironswornRules.onOutcome(null, k, k, { price: true, failed: true });
+    expect([k.resources.momentum, k.control]).toEqual([3, false]);
+    ironswornRules.onOutcome(null, k, f, { takeControl: true });
+    expect([k.control, f.control]).toEqual([true, true]);
+    ironswornRules.gainResource(f, "momentum", 20);
+    expect(f.resources.momentum).toBe(10);
+  });
+
+  test("a friend who asks for it (and can be heard) gets it: Aid Your Ally, while the aider is in control", () => {
+    let aided = 0;
+    for ( let seed = 1; seed <= 20; seed++ ) {
+      const kara = hero({ id: "kara", stats: { edge: 3, heart: 3, iron: 1, shadow: 1, wits: 3 }, control: true, initiative: { mod: 20 } });
+      const brand = hero({ id: "brand", stats: { edge: 1, heart: 1, iron: 3, shadow: 1, wits: 1 }, desires: [{ kind: "bolstered", targetId: "kara", level: 90 }] });
+      const r = replay(fight([kara, brand, foe({ rank: 3 })], { maxRounds: 2 }), ironswornRules, seed);
+      const given = r.log.filter(e => e.type === "buff" && e.actorId === "kara");
+      for ( const e of given ) expect(e.targetIds).toEqual(["brand"]);
+      aided += given.length;
+    }
+    expect(aided).toBeGreaterThan(0);
   });
 });

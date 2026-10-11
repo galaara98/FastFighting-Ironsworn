@@ -11,7 +11,7 @@ export const MODULE_ID = "fast-fighting-ironsworn";
 const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 
 /** The core API this helper is written against (its system hooks for dice and moves of their own). */
-const NEEDS_API = 6;
+const NEEDS_API = 7;
 
 Hooks.once("init", () => {
   // Ironsworn: a deadly weapon (a sword, an axe, a spear, a bow) inflicts 2 harm; unarmed or a simple weapon, 1.

@@ -24,6 +24,9 @@ export const MOMENTUM = Object.freeze({ min: -6, max: 10, reset: 2 });
  *  - endure: Endure Harm: what shaking it off costs, whether a weak hit can trade momentum for health, what a miss
  *    costs.
  *  - finish, price, face: End the Fight / Take Decisive Action, Pay the Price, Face Death (they play alike here).
+ *  - advantage: Secure an Advantage (Starforged's fight: Gain Ground), in control: what a strong and a weak hit give
+ *    (`next`: +1 on the next move; `momentum`); a miss pays the price. aid: Aid Your Ally, the same for a friend
+ *    (a strong hit in a fight puts both in control).
  * Ironsworn: Strike when you have the initiative, Clash when your foe does. Starforged: Strike in control, Clash in a
  * bad spot. Sundered Isles plays Starforged's moves, with its own Enter the Fray (which plays the same way).
  */
@@ -32,6 +35,9 @@ const CLASSIC = Object.freeze({
   // (A strong Clash: "find an opening", +1 harm.)
   clash: { name: "Clash", strong: 2, weak: 1, harm: true },
   finish: { name: "End the Fight" },
+  // (A strong hit: "take control", +1 on the next move here; a weak hit: +1 momentum.)
+  advantage: { name: "Secure an Advantage", strong: { next: 1, momentum: 0 }, weak: { next: 0, momentum: 1 } },
+  aid: { name: "Aid Your Ally" },
   fray: { name: "Enter the Fray", stats: ["heart"], missMomentum: -1 },
   endure: { name: "Endure Harm", shakeCost: 1, weakTrade: false, miss: "momentum" },
   price: { name: "Pay the Price" },
@@ -42,6 +48,9 @@ const STARFORGED = Object.freeze({
   strike: { name: "Strike", strong: 2, weak: 2 },
   clash: { name: "Clash", strong: 2, weak: 1 },
   finish: { name: "Take Decisive Action" },
+  // (A strong hit: two of +2 momentum, +1 on the next move, progress; a weak hit: one, +1 on the next move here.)
+  advantage: { name: "Gain Ground", strong: { next: 1, momentum: 2 }, weak: { next: 1, momentum: 0 } },
+  aid: { name: "Aid Your Ally" },
   fray: { name: "Enter the Fray", stats: ["edge", "heart", "iron"], missMomentum: 0 },
   endure: { name: "Endure Harm", shakeCost: 0, weakTrade: true, miss: "worse" },
   price: { name: "Pay the Price" },
