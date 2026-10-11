@@ -4,6 +4,7 @@
 import { movesFor, TICKS, TRACK } from "./moves.js";
 import { LORE_BOOST } from "./lore.js";
 import { t, moveName } from "./words.js";
+import { listItems } from "./core.js";
 
 const harm = n => ({ dice: [], flat: n, type: "harm", persistent: false, category: null });
 
@@ -25,7 +26,7 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
   if ( ranged ) forms.push({ key: "range", stat: "edge", melee: false });
   for ( const f of forms ) {
     const reach = f.melee ? { melee: true, reach: 5, range: null } : { melee: false, range: { increment: 60, max: 120, noPenalty: true } };
-    const label = f.melee ? "" : t("AtRange", " (at range)");
+    const label = f.melee ? "" : t("AtRange");
     for ( const move of ["strike", "clash"] ) {
       out.push({
         id: `${id}.${move}.${f.key}`, name: `${m[move].name}${label}`, kind: "strike", cost: 1, move, bonus: stats?.[f.stat] ?? 1, stat: f.stat, ...reach,
@@ -48,7 +49,7 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
  * unless it says otherwise: see lore.js), at whoever it's aimed; a miss pays the price.
  */
 export function loreSizeUp(stats, boost = LORE_BOOST.default) {
-  return { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("Secure an Advantage"), boost, uses: 1, anyFoe: true, missOutcome: { price: true, label: moveName("Pay the Price") } };
+  return { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("SecureanAdvantage"), boost, uses: 1, anyFoe: true, missOutcome: { price: true, label: moveName("PaythePrice") } };
 }
 
 /**
@@ -67,13 +68,13 @@ export function advantageMoves({ id, stats, moves }) {
     if ( r.next ) {
       o.mods = { attack: r.next, checks: r.next };
       o.uses = 1;
-      said.push(`+${r.next} on the next move`);
+      said.push(t("Gives.Next", { n: `+${r.next}` }));
     }
     if ( r.momentum ) {
       o.resources = { momentum: r.momentum };
-      said.push(`+${r.momentum} momentum`);
+      said.push(t("Gives.Momentum", { n: `+${r.momentum}` }));
     }
-    o.label = said.join(", ");
+    o.label = listItems(said);
     return o;
   };
   const price = { price: true, failed: true, rounds: 1, label: m.price.name };
@@ -81,8 +82,8 @@ export function advantageMoves({ id, stats, moves }) {
   return [
     { id: `${id}.advantage`, name: m.advantage.name, kind: "buff", targets: "self", cost: 1, move: "advantage", check, traits: [],
       onDegree: [price, price, gives(m.advantage.weak), gives(m.advantage.strong)] },
-    { id: `${id}.aid`, name: m.aid?.name ?? "Aid Your Ally", kind: "buff", includeSelf: false, cost: 1, move: "advantage", traits: [],
-      range: { increment: 120, max: 120, noPenalty: true }, check: { ...check, label: m.aid?.name ?? "Aid Your Ally" },
+    { id: `${id}.aid`, name: m.aid?.name ?? moveName("AidYourAlly"), kind: "buff", includeSelf: false, cost: 1, move: "advantage", traits: [],
+      range: { increment: 120, max: 120, noPenalty: true }, check: { ...check, label: m.aid?.name ?? moveName("AidYourAlly") },
       onDegree: [price, price, gives(m.advantage.weak), { ...gives(m.advantage.strong), takeControl: true }] }
   ];
 }
@@ -103,6 +104,6 @@ export function foeNumbers({ id, rank, current = 0 }) {
     level: r,
     hp: { value: TRACK - marked, max: TRACK, temp: 0 },
     iwr: { immune: [], weak: {}, resist: {}, ticksPerHarm: TICKS[r] },
-    actions: [{ id: `${id}.attack`, name: t("Attack", "Attack"), kind: "strike", cost: 1, bonus: r + 2, melee: true, reach: 5, damage: [harm(r)], traits: [] }]
+    actions: [{ id: `${id}.attack`, name: t("Attack"), kind: "strike", cost: 1, bonus: r + 2, melee: true, reach: 5, damage: [harm(r)], traits: [] }]
   };
 }

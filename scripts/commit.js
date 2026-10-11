@@ -31,21 +31,21 @@ export function describeIronswornOutcome(spec, final) {
   const lines = [];
   const s = final.system ?? {};
   if ( spec.mover ) {
-    if ( final.hp !== spec.hp.value ) lines.push(t("Out.Health", "Health {from} → {to}", { from: spec.hp.value, to: final.hp }));
-    if ( Number.isFinite(s.momentum) && s.momentum !== spec.resources?.momentum ) lines.push(t("Out.Momentum", "Momentum {from} → {to}", { from: spec.resources?.momentum ?? 0, to: s.momentum }) + (s.burned ? t("Out.Burned", " (burned {n}×)", { n: s.burned }) : ""));
-    if ( s.wounded && !spec.wounded ) lines.push(t("Out.Wounded", "Wounded"));
-    if ( final.status === STATUS.DEAD ) lines.push(t("Out.Dies", "DIES"));
-    else if ( final.status === STATUS.DOWN ) lines.push(s.deathbound ? t("Out.Deathbound", "Survives Face Death, bound to a deathbound quest; out cold") : final.stable ? t("Out.Cold", "Out cold") : t("Out.Dying", "Dying: needs healing within an hour or two, or Face Death"));
-    else if ( final.status === STATUS.FLED ) lines.push(t("Out.Retreated", "Retreated from the fight"));
+    if ( final.hp !== spec.hp.value ) lines.push(t("Out.Health", { from: spec.hp.value, to: final.hp }));
+    if ( Number.isFinite(s.momentum) && s.momentum !== spec.resources?.momentum ) lines.push(t("Out.Momentum", { from: spec.resources?.momentum ?? 0, to: s.momentum }) + (s.burned ? t("Out.Burned", { n: s.burned }) : ""));
+    if ( s.wounded && !spec.wounded ) lines.push(t("Out.Wounded"));
+    if ( final.status === STATUS.DEAD ) lines.push(t("Out.Dies"));
+    else if ( final.status === STATUS.DOWN ) lines.push(s.deathbound ? t("Out.Deathbound") : final.stable ? t("Out.Cold") : t("Out.Dying"));
+    else if ( final.status === STATUS.FLED ) lines.push(t("Out.Retreated"));
     return lines;
   }
   const before = ticks(spec.hp.value);
   const after = ticks(final.hp);
-  if ( final.status === STATUS.DEAD ) lines.push(t("Out.Beaten", "Beaten: track complete ({n}/10)", { n: Math.floor(after / 4) }));
-  else if ( after > before ) lines.push(t("Out.Progress", "Progress {from}/10 → {to}/10 ({n} ticks)", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
-  if ( final.status === STATUS.FLED ) lines.push(final.swayed ? t("Out.TalkedAway", "Talked into leaving (token hidden)") : t("Out.Fled", "Fled (token hidden)"));
-  else if ( final.status === STATUS.SURRENDERED ) lines.push(t("Out.Surrenders", "Surrenders"));
-  else if ( final.status === STATUS.STOOD_DOWN ) lines.push(t("Out.StandsDown", "Stands down"));
+  if ( final.status === STATUS.DEAD ) lines.push(t("Out.Beaten", { n: Math.floor(after / 4) }));
+  else if ( after > before ) lines.push(t("Out.Progress", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
+  if ( final.status === STATUS.FLED ) lines.push(final.swayed ? t("Out.TalkedAway") : t("Out.Fled"));
+  else if ( final.status === STATUS.SURRENDERED ) lines.push(t("Out.Surrenders"));
+  else if ( final.status === STATUS.STOOD_DOWN ) lines.push(t("Out.StandsDown"));
   return lines;
 }
 

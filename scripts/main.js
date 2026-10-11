@@ -12,7 +12,7 @@ export const MODULE_ID = "fast-fighting-ironsworn";
 const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 
 /** The core API this helper is written against (its system hooks for dice and moves of their own). */
-const NEEDS_API = 8;
+const NEEDS_API = 9;
 
 /**
  * The last translation module we knew of for this game system, by language: in a language other than English, this
@@ -58,7 +58,7 @@ Hooks.once("fastFighting.init", api => {
     return;
   }
   api.registerAdapter("foundry-ironsworn", IronswornAdapter, { priority: 10, source: MODULE_ID });
-  api.adviseTranslation?.(MODULE_ID, "Ironsworn & Starforged", KNOWN_TRANSLATIONS);
+  api.adviseTranslation?.(MODULE_ID, game.system.title, KNOWN_TRANSLATIONS);
 });
 
 /** The rules preference as pills: one click, one on at a time (the setting's own select, hidden, keeps the value). */

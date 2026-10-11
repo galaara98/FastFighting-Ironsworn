@@ -32,31 +32,31 @@ export const MOMENTUM = Object.freeze({ min: -6, max: 10, reset: 2 });
  * bad spot. Sundered Isles plays Starforged's moves, with its own Enter the Fray (which plays the same way).
  */
 const CLASSIC = Object.freeze({
-  strike: { name: "Strike", strong: 2, weak: 1, harm: true },
+  strike: { key: "Strike", strong: 2, weak: 1, harm: true },
   // (A strong Clash: "find an opening", +1 harm.)
-  clash: { name: "Clash", strong: 2, weak: 1, harm: true },
-  finish: { name: "End the Fight" },
+  clash: { key: "Clash", strong: 2, weak: 1, harm: true },
+  finish: { key: "EndtheFight" },
   // (A strong hit: "take control", +1 on the next move here; a weak hit: +1 momentum.)
-  advantage: { name: "Secure an Advantage", strong: { next: 1, momentum: 0 }, weak: { next: 0, momentum: 1 } },
-  aid: { name: "Aid Your Ally" },
-  fray: { name: "Enter the Fray", stats: ["heart"], missMomentum: -1 },
-  endure: { name: "Endure Harm", shakeCost: 1, weakTrade: false, miss: "momentum" },
-  price: { name: "Pay the Price" },
-  face: { name: "Face Death" },
-  control: { on: "has initiative", off: "loses initiative" }
+  advantage: { key: "SecureanAdvantage", strong: { next: 1, momentum: 0 }, weak: { next: 0, momentum: 1 } },
+  aid: { key: "AidYourAlly" },
+  fray: { key: "EntertheFray", stats: ["heart"], missMomentum: -1 },
+  endure: { key: "EndureHarm", shakeCost: 1, weakTrade: false, miss: "momentum" },
+  price: { key: "PaythePrice" },
+  face: { key: "FaceDeath" },
+  control: { on: "hasinitiative", off: "losesinitiative" }
 });
 const STARFORGED = Object.freeze({
-  strike: { name: "Strike", strong: 2, weak: 2 },
-  clash: { name: "Clash", strong: 2, weak: 1 },
-  finish: { name: "Take Decisive Action" },
+  strike: { key: "Strike", strong: 2, weak: 2 },
+  clash: { key: "Clash", strong: 2, weak: 1 },
+  finish: { key: "TakeDecisiveAction" },
   // (A strong hit: two of +2 momentum, +1 on the next move, progress; a weak hit: one, +1 on the next move here.)
-  advantage: { name: "Gain Ground", strong: { next: 1, momentum: 2 }, weak: { next: 1, momentum: 0 } },
-  aid: { name: "Aid Your Ally" },
-  fray: { name: "Enter the Fray", stats: ["edge", "heart", "iron"], missMomentum: 0 },
-  endure: { name: "Endure Harm", shakeCost: 0, weakTrade: true, miss: "worse" },
-  price: { name: "Pay the Price" },
-  face: { name: "Face Death" },
-  control: { on: "is in control", off: "is in a bad spot" }
+  advantage: { key: "GainGround", strong: { next: 1, momentum: 2 }, weak: { next: 1, momentum: 0 } },
+  aid: { key: "AidYourAlly" },
+  fray: { key: "EntertheFray", stats: ["edge", "heart", "iron"], missMomentum: 0 },
+  endure: { key: "EndureHarm", shakeCost: 0, weakTrade: true, miss: "worse" },
+  price: { key: "PaythePrice" },
+  face: { key: "FaceDeath" },
+  control: { on: "isincontrol", off: "isinabadspot" }
 });
 const SUNDERED_ISLES = Object.freeze({ ...STARFORGED, fray: { ...STARFORGED.fray } });
 
@@ -80,21 +80,16 @@ export function movesFor(own, preference = null, enabled = null) {
   if ( !preferred || preference === moves.ruleset || (enabled && !enabled.includes(preference)) ) return named(moves);
   for ( const key of OWN_MOVES[preference] ) {
     const move = preferred[key];
-    if ( move?.name && moves[key]?.name === move.name ) moves[key] = move;
+    if ( move?.key && moves[key]?.key === move.key ) moves[key] = move;
   }
   return named(moves);
 }
 
-/** The moves named in the reader's language (worked out after they're matched by their English names). */
+/** The moves named in the reader's language (worked out after they're matched by their keys). */
 function named(moves) {
   const out = { ...moves };
-  for ( const [key, move] of Object.entries(moves) ) if ( move?.name ) out[key] = { ...move, name: moveName(move.name) };
-  if ( moves.control ) {
-    out.control = {
-      on: t(`Control.${moves.control.on.replace(/[^A-Za-z]/g, "")}`, moves.control.on),
-      off: t(`Control.${moves.control.off.replace(/[^A-Za-z]/g, "")}`, moves.control.off)
-    };
-  }
+  for ( const [key, move] of Object.entries(moves) ) if ( move?.key ) out[key] = { ...move, name: moveName(move.key) };
+  if ( moves.control ) out.control = { on: t(`Control.${moves.control.on}`), off: t(`Control.${moves.control.off}`) };
   return out;
 }
 

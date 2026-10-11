@@ -5,6 +5,12 @@ import { characterMoves, foeNumbers, advantageMoves, loreSizeUp } from "../scrip
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
 import { replay, runBatchSync } from "../../FastFighting/scripts/engine/simulator.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
+import { text } from "./foundry-i18n.js";
+
+/** A move's name, as the language file has it ("EndtheFight": End the Fight). */
+const move = key => text(`FFIRONSWORN.Move.${key}`);
+/** Was this log line's action that move? */
+const made = (e, key) => String(e.action ?? "").includes(move(key));
 
 const traits = t => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { base: v, fudge: 0 }]));
 
@@ -93,10 +99,10 @@ describe("a fight", () => {
       for ( const e of r.log ) {
         if ( e.type === "startTurn" ) control = e.degree >= 2;
         if ( e.actor === "kara" && e.type === "attack" && !e.retort ) {
-          if ( /Strike/.test(e.action) ) { strikes += 1; expect(control).toBe(true); }
-          if ( /Clash/.test(e.action) ) { clashes += 1; expect(control).toBe(false); }
-          if ( /Strike|Clash/.test(e.action) ) control = e.degree === 3;
-          if ( /End the Fight/.test(e.action) ) control = e.degree >= 2;
+          if ( made(e, "Strike") ) { strikes += 1; expect(control).toBe(true); }
+          if ( made(e, "Clash") ) { clashes += 1; expect(control).toBe(false); }
+          if ( made(e, "Strike") || made(e, "Clash") ) control = e.degree === 3;
+          if ( made(e, "EndtheFight") ) control = e.degree >= 2;
         }
         if ( e.type === "backlash" ) prices += 1;
         if ( e.type === "endure" ) endured += 1;
@@ -120,7 +126,7 @@ describe("a fight", () => {
     let ended = 0;
     for ( let seed = 1; seed <= 10; seed++ ) {
       const r = replay(fight([hero(), foe({ rank: 2, current: 24 })]), ironswornRules, seed);
-      const finish = r.log.filter(e => e.actor === "kara" && e.type === "attack" && /End the Fight/.test(e.action));
+      const finish = r.log.filter(e => e.actor === "kara" && e.type === "attack" && made(e, "EndtheFight"));
       for ( const e of finish ) if ( e.degree >= 2 ) ended += 1;
     }
     expect(ended).toBeGreaterThan(3);
@@ -162,17 +168,17 @@ describe("rules preference: a move of the same name in another ruleset", () => {
     expect(movesFor("classic", "sheet", both).strike.weak).toBe(1);
     // A Starforged sheet in a Sundered Isles world: Starforged's moves, with Sundered Isles' Enter the Fray.
     const isles = movesFor("sundered_isles", "sundered_isles", ["sundered_isles"]);
-    expect([isles.strike.weak, isles.finish.name, isles.fray.stats.includes("iron")]).toEqual([2, "Take Decisive Action", true]);
+    expect([isles.strike.weak, isles.finish.name, isles.fray.stats.includes("iron")]).toEqual([2, move("TakeDecisiveAction"), true]);
     const m = movesFor("starforged", "classic", both);
     expect(m.strike.weak).toBe(1); // Ironsworn's Strike: harm, not progress twice
     expect(m.strike.harm).toBe(true);
     expect(m.fray.missMomentum).toBe(-1);
     expect(m.endure.miss).toBe("momentum");
-    expect(m.finish.name).toBe("Take Decisive Action"); // (no Ironsworn move by that name)
-    expect(m.control.on).toBe("is in control");        // (its own words for it)
+    expect(m.finish.name).toBe(move("TakeDecisiveAction")); // (no Ironsworn move by that name)
+    expect(m.control.on).toBe(text("FFIRONSWORN.Control.isincontrol"));        // (its own words for it)
     const c = movesFor("classic", "starforged", both);
     expect(c.strike.weak).toBe(2);
-    expect(c.finish.name).toBe("End the Fight");
+    expect(c.finish.name).toBe(move("EndtheFight"));
   });
 
   test("only when the world has the preferred ruleset on; Sundered Isles brings only its own moves", () => {
@@ -206,14 +212,14 @@ describe("rules preference: a move of the same name in another ruleset", () => {
 describe("securing an advantage", () => {
   test("Secure an Advantage (Gain Ground in a Starforged fight): what each hit gives, by the ruleset; a miss, the price", () => {
     const [classic, aid] = advantageMoves({ id: "k", stats: { edge: 2, heart: 1, iron: 3, shadow: 1, wits: 2 }, moves: movesFor("classic") });
-    expect(classic).toMatchObject({ name: "Secure an Advantage", targets: "self", move: "advantage", check: { mod: 3 } });
-    expect(classic.onDegree[3]).toMatchObject({ mods: { attack: 1, checks: 1 }, uses: 1, label: "+1 on the next move" });
-    expect(classic.onDegree[2]).toMatchObject({ resources: { momentum: 1 }, label: "+1 momentum" });
-    expect(classic.onDegree[1]).toMatchObject({ price: true, failed: true, label: "Pay the Price" });
-    expect(aid).toMatchObject({ name: "Aid Your Ally", includeSelf: false });
+    expect(classic).toMatchObject({ name: move("SecureanAdvantage"), targets: "self", move: "advantage", check: { mod: 3 } });
+    expect(classic.onDegree[3]).toMatchObject({ mods: { attack: 1, checks: 1 }, uses: 1, label: text("FFIRONSWORN.Gives.Next", { n: "+1" }) });
+    expect(classic.onDegree[2]).toMatchObject({ resources: { momentum: 1 }, label: text("FFIRONSWORN.Gives.Momentum", { n: "+1" }) });
+    expect(classic.onDegree[1]).toMatchObject({ price: true, failed: true, label: move("PaythePrice") });
+    expect(aid).toMatchObject({ name: move("AidYourAlly"), includeSelf: false });
     expect(aid.onDegree[3].takeControl).toBe(true);
     const [sf] = advantageMoves({ id: "k", stats: { iron: 2 }, moves: movesFor("starforged") });
-    expect(sf.name).toBe("Gain Ground");
+    expect(sf.name).toBe(move("GainGround"));
     expect(sf.onDegree[3]).toMatchObject({ mods: { attack: 1 }, resources: { momentum: 2 } });
     expect(sf.onDegree[2]).toMatchObject({ mods: { attack: 1 }, uses: 1 });
   });
@@ -248,7 +254,7 @@ describe("securing an advantage", () => {
 
 describe("a Lore-Collector in Ironsworn", () => {
   test("sizes a foe up by Securing an Advantage (+wits): a hit makes its next attack or words 25% likelier; a miss pays the price", () => {
-    expect(loreSizeUp({ wits: 3 })).toMatchObject({ mod: 3, label: "Secure an Advantage", boost: 2.35, uses: 1, anyFoe: true, missOutcome: { price: true } });
+    expect(loreSizeUp({ wits: 3 })).toMatchObject({ mod: 3, label: move("SecureanAdvantage"), boost: 2.35, uses: 1, anyFoe: true, missOutcome: { price: true } });
     let boostedAfterHit = 0;
     let prices = 0;
     for ( let seed = 1; seed <= 30; seed++ ) {
@@ -262,7 +268,7 @@ describe("a Lore-Collector in Ironsworn", () => {
         boostedAfterHit += boosted.length;
       } else {
         expect(boosted).toHaveLength(0);
-        expect(study.price).toBe("Pay the Price");
+        expect(study.price).toBe(move("PaythePrice"));
         prices++;
       }
     }

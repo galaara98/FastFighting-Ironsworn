@@ -19,6 +19,7 @@ import { movesFor } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome } from "./commit.js";
+import { t } from "./words.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
@@ -49,7 +50,7 @@ export class IronswornAdapter extends SystemAdapter {
   #folders = new Map();
 
   get label() {
-    return "Ironsworn / Starforged";
+    return t("Label");
   }
 
   get rules() {

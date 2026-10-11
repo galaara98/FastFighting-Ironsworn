@@ -1,5 +1,6 @@
 {
   "FFIRONSWORN": {
+    "Label": "Ironsworn / Starforged",
     "CoreTooOld": "FastFighting Ironsworn needs a newer FastFighting Core. Update FastFighting.",
     "NeedsCore": "FastFighting Ironsworn needs the FastFighting module. Enable it in Manage Modules.",
     "Momentum": "Momentum",
@@ -109,6 +110,15 @@
       "Fled": "Fled (token hidden)",
       "Surrenders": "Surrenders",
       "StandsDown": "Stands down"
+    },
+    "Gives": {
+      "Next": "{n} on the next move",
+      "Momentum": "{n} momentum"
+    },
+    "Lead": {
+      "Heart": "heart {n}",
+      "Rank": "rank {n}",
+      "Title": "leads by title"
     }
   }
 }

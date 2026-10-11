@@ -43,7 +43,7 @@ export function deriveIronswornTraits({ pc, rank = 2, nature = "people", stats =
     reasons.tactical = `${statName("wits")} ${stats.wits ?? 1}`;
     reasons.brave = `${statName("iron")} ${stats.iron ?? 1}, ${statName("heart")} ${stats.heart ?? 1}`;
     reasons.selfish = `${statName("shadow")} ${stats.shadow ?? 1}`;
-    reasons.loyal = t("Reason.Sworn", "{heart} {n}: sworn to their companions", { heart: statName("heart"), n: stats.heart ?? 1 });
+    reasons.loyal = t("Reason.Sworn", { heart: statName("heart"), n: stats.heart ?? 1 });
     return { traits: { tactical, brave, selfish, loyal }, flags, reasons };
   }
   const r = clamp(Number(rank) || 2, 1, 5);
@@ -58,7 +58,7 @@ export function deriveIronswornTraits({ pc, rank = 2, nature = "people", stats =
   const traits = { ...base, brave: clamp(base.brave + 5 * (r - 2), 5, 100) };
   const kind = t(`Nature.${nature}`, nature);
   reasons.tactical = kind;
-  reasons.brave = t("Reason.Rank", "{nature}, rank {r}", { nature: kind, r });
+  reasons.brave = t("Reason.Rank", { nature: kind, r });
   reasons.selfish = kind;
   reasons.loyal = kind;
   if ( nature === "horror" || nature === "machine" ) flags.fearless = true;
