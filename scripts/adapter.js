@@ -142,6 +142,7 @@ export class IronswornAdapter extends SystemAdapter {
       diesAtZero: true,
       perception: n.rank,
       creatureTraits: [nature],
+      creatureKind: nature, // (the planner groups neutrals by it)
       social: {
         pitches: talks ? Object.fromEntries(["persuade", "intimidate", "deceive"].map(k => [k, { skill: game.i18n.localize("FFIRONSWORN.Compel"), mod: n.rank - 1 }])) : {},
         // (Compelling a foe in the middle of a fight is hard, and the harder the higher its rank.)
