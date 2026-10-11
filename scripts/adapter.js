@@ -19,6 +19,13 @@ import { commitIronswornOutcome, describeIronswornOutcome } from "./commit.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
+const deadlyWeapons = () => {
+  try {
+    return game.settings.get("fast-fighting-ironsworn", "deadlyWeapons") !== false;
+  } catch ( err ) {
+    return true;
+  }
+};
 const plain = html => String(html ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
 export class IronswornAdapter extends SystemAdapter {
@@ -81,7 +88,8 @@ export class IronswornAdapter extends SystemAdapter {
       shield: null,
       initiative: { mod: stats.wits, stealth: stats.shadow },
       speeds: { walk: 30 },
-      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged }),
+      // (Ironsworn: armed with a deadly weapon, 2 harm a hit; a world setting for tables where that isn't so.)
+      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, extraHarm: ruleset === "classic" && deadlyWeapons() ? 1 : 0 }),
       iwr: { immune: [], weak: {}, resist: {} },
       resources: { momentum: Number(sys.momentum?.value ?? 2) },
       momentumReset: Number(sys.momentumReset ?? sys.momentum?.resetValue ?? 2),

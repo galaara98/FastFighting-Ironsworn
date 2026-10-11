@@ -10,6 +10,19 @@ export const MODULE_ID = "fast-fighting-ironsworn";
 /** The core API this helper is written against (its system hooks for dice and moves of their own). */
 const NEEDS_API = 6;
 
+Hooks.once("init", () => {
+  // Ironsworn: a deadly weapon (a sword, an axe, a spear, a bow) inflicts 2 harm; unarmed or a simple weapon, 1.
+  // Characters' sheets don't say what they carry, so the GM says what's usual at their table.
+  game.settings.register(MODULE_ID, "deadlyWeapons", {
+    name: "FFIRONSWORN.Settings.deadlyWeapons.Name",
+    hint: "FFIRONSWORN.Settings.deadlyWeapons.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+});
+
 Hooks.once("fastFighting.init", api => {
   // module.json limits this module to foundry-ironsworn worlds; this guard covers anything that slips past.
   if ( game.system.id !== "foundry-ironsworn" ) {
