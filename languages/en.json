@@ -12,10 +12,11 @@
     "Settings": {
       "rulesPreference": {
         "Name": "Rules preference",
-        "Hint": "With more than one ruleset on in the world, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently (Strike, Clash, Endure Harm, Enter the Fray). A character makes its own sheet's moves, except where the preferred ruleset (if it's on) has a move of the same name: then it makes that one. Moves called differently (End the Fight, Take Decisive Action) stay its own.",
-        "classic": "Prefer Ironsworn moves when the names match",
-        "starforged": "Prefer Starforged moves when the names match",
-        "sundered_isles": "Prefer Sundered Isles moves when the names match"
+        "Hint": "With more than one ruleset on, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently (Strike, Clash, Endure Harm, Enter the Fray). Follow character sheets: every character makes the moves of the sheet it's on now (an Ironsworn sheet's, a Starforged sheet's), even where that sheet shows other rulesets' moves too. Prefer a ruleset: where it has a move of the same name (and the world has it on), every character makes that ruleset's version. Moves called differently (End the Fight, Take Decisive Action) always stay the character's own.",
+        "sheet": "Follow character sheets",
+        "classic": "Prefer Ironsworn",
+        "starforged": "Prefer Starforged",
+        "sundered_isles": "Prefer Sundered Isles"
       },
       "deadlyWeapons": {
         "Name": "Characters fight with deadly weapons",

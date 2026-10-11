@@ -35,13 +35,10 @@ The characters make the moves, as in the game; foes never roll.
 
 ## Rules preference
 
-With more than one ruleset on in the world, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently: Strike, Clash, Endure Harm, Enter the Fray. A character makes its own sheet's moves, except where the ruleset the world prefers (**Settings → FastFighting Ironsworn → Rules preference**, when that ruleset is on) has a move of the same name: then it makes that one.
+With more than one ruleset on in the world, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently: Strike, Clash, Endure Harm, Enter the Fray. **Settings → FastFighting Ironsworn → Rules preference** says which version a character makes, one pill on at a time:
 
-- **Prefer Ironsworn moves when the names match** (the default)
-- **Prefer Starforged moves when the names match**
-- **Prefer Sundered Isles moves when the names match** (of the combat moves, Sundered Isles has its own Enter the Fray; for the rest a character keeps its own)
-
-Moves called differently stay the character's own (End the Fight, Take Decisive Action), and so do the words for who has the upper hand (the initiative, in control). A deadly weapon's harm counts only on Ironsworn's Strike and Clash; Starforged's mark progress.
+- **Follow character sheets** (the default): every character makes the moves of the sheet it's on now, the token's own choice of sheet over its actor's (an Ironsworn sheet's; a Starforged sheet's, or Sundered Isles' in a world with that on and not Starforged), even where that sheet shows other rulesets' moves too. A sheet that's neither (the compact sheet) goes by the rulesets the world has on, Ironsworn first.
+- **Prefer Ironsworn**, **Prefer Starforged**, **Prefer Sundered Isles**: where that ruleset has a move of the same name (and the world has it on), every character makes that ruleset's version. Of the combat moves, Sundered Isles has its own Enter the Fray. Moves called differently stay the character's own (End the Fight, Take Decisive Action), and so do the words for who has the upper hand (the initiative, in control). A deadly weapon's harm counts only on Ironsworn's Strike and Clash; Starforged's mark progress.
 
 ## Make it So
 

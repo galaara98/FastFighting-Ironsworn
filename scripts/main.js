@@ -7,6 +7,9 @@ import { IronswornAdapter } from "./adapter.js";
 
 export const MODULE_ID = "fast-fighting-ironsworn";
 
+/** "Rules preference": follow the character sheets, or prefer one ruleset's moves when the names match. */
+const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
+
 /** The core API this helper is written against (its system hooks for dice and moves of their own). */
 const NEEDS_API = 6;
 
@@ -22,19 +25,15 @@ Hooks.once("init", () => {
     default: true
   });
   // With more than one ruleset on, Ironsworn, Starforged and Sundered Isles have moves of the same name (Strike, Clash,
-  // Endure Harm, Enter the Fray ...) that play differently: which one a character makes.
+  // Endure Harm, Enter the Fray ...) that play differently: which one a character makes. Shown as pills, one on at a time.
   game.settings.register(MODULE_ID, "rulesPreference", {
     name: "FFIRONSWORN.Settings.rulesPreference.Name",
     hint: "FFIRONSWORN.Settings.rulesPreference.Hint",
     scope: "world",
     config: true,
     type: String,
-    choices: {
-      classic: "FFIRONSWORN.Settings.rulesPreference.classic",
-      starforged: "FFIRONSWORN.Settings.rulesPreference.starforged",
-      sundered_isles: "FFIRONSWORN.Settings.rulesPreference.sundered_isles"
-    },
-    default: "classic"
+    choices: Object.fromEntries(PREFERENCES.map(k => [k, `FFIRONSWORN.Settings.rulesPreference.${k}`])),
+    default: "sheet"
   });
 });
 
@@ -50,6 +49,42 @@ Hooks.once("fastFighting.init", api => {
     return;
   }
   api.registerAdapter("foundry-ironsworn", IronswornAdapter, { priority: 10, source: MODULE_ID });
+});
+
+/** The rules preference as pills: one click, one on at a time (the setting's own select, hidden, keeps the value). */
+Hooks.on("renderSettingsConfig", (app, element) => {
+  const root = element instanceof HTMLElement ? element : element?.[0];
+  const select = root?.querySelector(`select[name="${MODULE_ID}.rulesPreference"]`);
+  if ( !select || select.nextElementSibling?.classList.contains("ffi-pills") ) return;
+  const pills = document.createElement("div");
+  pills.className = "ffi-pills";
+  pills.setAttribute("role", "radiogroup");
+  for ( const option of select.options ) {
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "ffi-pill";
+    pill.dataset.value = option.value;
+    pill.textContent = option.textContent;
+    pill.setAttribute("role", "radio");
+    pills.append(pill);
+  }
+  const show = () => {
+    for ( const pill of pills.children ) {
+      const on = pill.dataset.value === select.value;
+      pill.classList.toggle("active", on);
+      pill.setAttribute("aria-checked", String(on));
+    }
+  };
+  pills.addEventListener("click", event => {
+    const pill = event.target.closest(".ffi-pill");
+    if ( !pill || pill.disabled ) return;
+    select.value = pill.dataset.value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    show();
+  });
+  select.hidden = true;
+  select.after(pills);
+  show();
 });
 
 Hooks.once("ready", () => {

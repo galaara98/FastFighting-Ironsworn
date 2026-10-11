@@ -24,11 +24,12 @@ const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|
 /** The rulesets on in the world (the system's "ruleset-..." settings). */
 const RULESET_KEYS = ["classic", "starforged", "sundered_isles"];
 const enabledRulesets = () => RULESET_KEYS.filter(r => { try { return !!game.settings.get("foundry-ironsworn", `ruleset-${r}`); } catch { return false; } });
+/** The world's rules preference: "sheet" (each character's own sheet's moves), or the ruleset whose moves it prefers. */
 const rulesPreference = () => {
   try {
-    return game.settings.get("fast-fighting-ironsworn", "rulesPreference") ?? "classic";
+    return game.settings.get("fast-fighting-ironsworn", "rulesPreference") ?? "sheet";
   } catch ( err ) {
-    return "classic";
+    return "sheet";
   }
 };
 const deadlyWeapons = () => {
@@ -64,13 +65,23 @@ export class IronswornAdapter extends SystemAdapter {
     return actor.type === "character" ? this.#character(tokenDoc, actor) : this.#foe(tokenDoc, actor);
   }
 
-  /** Classic or Starforged: the sheet this character uses, else the rulesets the world has on. */
+  /**
+   * The ruleset a character plays by: the sheet it's on now (the sheet open for it, or the one that would open: a
+   * token's own choice over its actor's), since a sheet can show other rulesets' moves too. An Ironsworn sheet plays
+   * Ironsworn; a Starforged sheet Starforged (Sundered Isles, in a world that has that on and not Starforged). A sheet
+   * that's neither (the compact sheet): the rulesets the world has on, Ironsworn first.
+   */
   #ruleset(actor) {
-    const sheet = actor._getSheetClass?.()?.name ?? String(actor.flags?.core?.sheetClass ?? "");
-    if ( /starforged/i.test(sheet) ) return "starforged";
+    const on = r => enabledRulesets().includes(r);
+    let sheet = "";
+    try {
+      sheet = actor.sheet?.constructor?.name ?? "";
+    } catch ( err ) { /* no sheet to be had: its configured one */ }
+    sheet ||= actor._getSheetClass?.()?.name ?? String(actor.flags?.core?.sheetClass ?? "");
+    if ( /starforged/i.test(sheet) ) return on("sundered_isles") && !on("starforged") ? "sundered_isles" : "starforged";
     if ( /ironsworn/i.test(sheet) ) return "classic";
-    const on = r => { try { return !!game.settings.get("foundry-ironsworn", `ruleset-${r}`); } catch { return false; } };
-    return on("classic") || !(on("starforged") || on("sundered_isles")) ? "classic" : "starforged";
+    if ( on("classic") || !(on("starforged") || on("sundered_isles")) ) return "classic";
+    return on("starforged") ? "starforged" : "sundered_isles";
   }
 
   #character(tokenDoc, actor) {
@@ -78,8 +89,10 @@ export class IronswornAdapter extends SystemAdapter {
     const stat = k => Number(sys[k]) || 0;
     const stats = { edge: stat("edge"), heart: stat("heart"), iron: stat("iron"), shadow: stat("shadow"), wits: stat("wits") };
     const ruleset = this.#ruleset(actor);
-    // Its own ruleset's moves, a move of the same name in the preferred ruleset (when the world has it on) played that way.
-    const moveRules = movesFor(ruleset, rulesPreference(), enabledRulesets());
+    // The moves of the sheet it's on (its ruleset preferred where names match), unless the world prefers another
+    // ruleset's of the same name (and has it on).
+    const preference = rulesPreference();
+    const moveRules = movesFor(ruleset, preference === "sheet" ? ruleset : preference, enabledRulesets());
     const assets = actor.items.filter(i => i.type === "asset");
     const ranged = assets.some(a => RANGED.test(a.name)) || stats.edge > stats.iron;
     const health = Number(sys.health?.value ?? 5);

@@ -157,6 +157,12 @@ describe("rules preference: a move of the same name in another ruleset", () => {
   const both = ["classic", "starforged"];
 
   test("a preferred ruleset's move of the same name replaces the character's own; moves called differently stay", () => {
+    // Following the character sheets: its own sheet's, always.
+    expect(movesFor("starforged", "sheet", both).strike.weak).toBe(2);
+    expect(movesFor("classic", "sheet", both).strike.weak).toBe(1);
+    // A Starforged sheet in a Sundered Isles world: Starforged's moves, with Sundered Isles' Enter the Fray.
+    const isles = movesFor("sundered_isles", "sundered_isles", ["sundered_isles"]);
+    expect([isles.strike.weak, isles.finish.name, isles.fray.stats.includes("iron")]).toEqual([2, "Take Decisive Action", true]);
     const m = movesFor("starforged", "classic", both);
     expect(m.strike.weak).toBe(1); // Ironsworn's Strike: harm, not progress twice
     expect(m.strike.harm).toBe(true);

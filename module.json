@@ -34,6 +34,9 @@
   "esmodules": [
     "scripts/main.js"
   ],
+  "styles": [
+    "styles/ironsworn.css"
+  ],
   "languages": [
     {
       "lang": "en",

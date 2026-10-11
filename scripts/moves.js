@@ -55,18 +55,19 @@ export const RULESETS = Object.freeze({ classic: CLASSIC, starforged: STARFORGED
 const OWN_MOVES = Object.freeze({ classic: Object.keys(CLASSIC), starforged: Object.keys(STARFORGED), sundered_isles: ["fray"] });
 
 /**
- * The moves a character makes in a fight: its own ruleset's, except that where the preferred ruleset (if the world has
- * it on) has a move of the same name, it's played as that ruleset plays it. Moves called differently (End the Fight,
- * Take Decisive Action) stay the character's own; so do the words for who's in control.
+ * The moves a character makes in a fight. Following the character sheets (no preference): its own sheet's, always.
+ * Preferring a ruleset the world has on: where that ruleset has a move of the same name, it's played as that ruleset
+ * plays it. Moves called differently (End the Fight, Take Decisive Action) stay the character's own; so do the words for
+ * who's in control.
  * @param {string} own                the character's ruleset (its sheet's): classic | starforged | sundered_isles
- * @param {string|null} [preference]  the world's "Rules preference"
+ * @param {string|null} [preference]  the world's "Rules preference": "sheet" (or none), or the ruleset to prefer
  * @param {string[]|null} [enabled]   the rulesets on in the world (null: take the preferred one as on)
  */
 export function movesFor(own, preference = null, enabled = null) {
   const base = RULESETS[own] ?? CLASSIC;
   const moves = { ...base, ruleset: RULESETS[own] ? own : "classic" };
   const preferred = RULESETS[preference];
-  if ( !preferred || preference === own || (enabled && !enabled.includes(preference)) ) return moves;
+  if ( !preferred || preference === moves.ruleset || (enabled && !enabled.includes(preference)) ) return moves;
   for ( const key of OWN_MOVES[preference] ) {
     const move = preferred[key];
     if ( move?.name && moves[key]?.name === move.name ) moves[key] = move;
