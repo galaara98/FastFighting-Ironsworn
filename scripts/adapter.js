@@ -224,11 +224,6 @@ export class IronswornAdapter extends SystemAdapter {
     return rankIronswornLeaders(specs.map(s => s.leadership).filter(Boolean));
   }
 
-  /** Ironsworn has no encounter budget to compare with. */
-  difficultyCrossCheck() {
-    return null;
-  }
-
   resourceLabel(key) {
     return key === "momentum" ? game.i18n.localize("FFIRONSWORN.Momentum") : null;
   }
