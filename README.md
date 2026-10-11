@@ -35,7 +35,13 @@ As the game plays it, success is progress on a track, and things going wrong cos
 - **Rank** (one track): Troublesome to Epic, how hard the objective is: how much each mark fills (troublesome 3 boxes, dangerous 2, formidable 1, extreme 2 ticks, epic 1), and how many successes it takes to talk a foe round (2, 3, 6, 12, 24). By default, its most dangerous foe's.
 - **Kept on** (one track): the character whose sheet keeps the track (the party's leader by default); the others can follow it by hand. Make it So writes it there: the track it keeps for this scene's encounters, else a new one named for the scene, completed when the objective is achieved.
 
-Either way, a foe's own rank says how hard it hits back.
+Either way, a foe's own rank says how hard it hits back, and a foe whose track is full is **beaten**: out of the fight, and the players decide what that means (killed, out of action, fled, surrendered). A Cruel character kills a foe it beats, and the story says so (Make it So marks it dead; a beaten foe is only marked defeated).
+
+**Going wrong:** an ally going down weighs on the characters beside it (Endure Stress, 1; 2 when it's killed).
+
+**Someone taking a side mid-fight** (one taking no side, won over or turning on one) has exactly one effect in a conflict, each way:
+- **Joining the party**, the first to: a success, a mark of progress on the encounter's track (never the last; the fight still has to win it), or, with each foe's own track, +1 momentum for each character.
+- **Turning on the party**: it's part of the encounter's track from then on. What it means is settled once, the first time it happens, with whoever else turned at the same moment: a whole neutral team (of the up to three) or a leader among them makes the objective a step harder (the rank up one, never to Epic); anyone else, or with no step to take (Extreme already, or each foe's own track), each character endures stress (1).
 
 ## How a fight plays
 

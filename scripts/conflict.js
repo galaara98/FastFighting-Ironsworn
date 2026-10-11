@@ -31,6 +31,12 @@ export const STEPS = Object.freeze({ 1: 2, 2: 3, 3: 6, 4: 12, 5: 24 });
 /** The key every foe on one encounter track shares (spec.sharedHp). */
 export const ENCOUNTER = "encounter";
 
+/** The track a creature is part of in the fight (one who joined it mid-fight: its own; else its spec's), or null. */
+export const sharedOf = u => u?.sharedHp ?? u?.spec?.sharedHp ?? null;
+
+/** The encounter's rank as the fight has left it (a newcomer turning on the party raises it a step). */
+export const trackRankOf = u => u?.trackRank ?? u?.spec?.objectiveRank ?? null;
+
 /** A rank from anything (a setting's string, a foe's rank): 1-5, or null. */
 export const rankOf = v => (Number.isFinite(Number(v)) && Number(v) >= 1 && Number(v) <= 5 ? Math.round(Number(v)) : null);
 
@@ -79,12 +85,14 @@ export function trackProgress(plan, replay) {
   const onTrack = new Set(plan.foeIds ?? []);
   const marks = (replay.log ?? []).filter(e => e.type === "talk" && e.degree >= 2 && onTrack.has(e.targetId) && e.side === plan.friendly)
     .reduce((s, e) => s + (e.degree === 3 ? 2 : 1), 0);
-  const talked = marks * (TICKS[plan.rank] ?? 0);
+  // (The rank as the fight left it: raised by someone turning on the party.)
+  const rank = [...(replay.log ?? [])].reverse().find(e => e.trackRank)?.trackRank ?? plan.rank;
+  const talked = marks * (TICKS[rank] ?? 0);
   const after = Math.min(TRACK, before + fought + talked);
   const end = (replay.log ?? []).find(e => e.type === "end");
   const lost = end?.resolved === "objectiveLost";
   const achieved = !lost && (left <= 0 || (!!end && (end.winners ?? []).includes(plan.friendly)));
-  return { before, after, fought, talked, achieved, lost };
+  return { before, after, fought, talked, achieved, lost, rank };
 }
 
 /** Whole boxes on a track (four ticks a box), 0-10. */

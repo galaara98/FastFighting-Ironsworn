@@ -8,6 +8,7 @@ import { replay, prepareBattle } from "../../FastFighting/scripts/engine/simulat
 import { createRun } from "../../FastFighting/scripts/engine/battle-state.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
 import { stepsToConvince } from "../../FastFighting/scripts/engine/behavior/talk.js";
+import { turnOn, joinSide } from "../../FastFighting/scripts/engine/behavior/neutral.js";
 
 const traits = t => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { base: v, fudge: 0 }]));
 const speaking = stats => ({ pitches: { persuade: { skill: "heart", mod: stats.heart }, intimidate: { skill: "iron", mod: stats.iron }, deceive: { skill: "shadow", mod: stats.shadow } }, resist: {}, languages: ["common"] });
@@ -69,7 +70,7 @@ describe("one track for the encounter", () => {
       if ( end.resolved === "objectiveLost" ) {
         lost++;
         expect(end.winners).toEqual(["hostile"]);
-      } else if ( foes.every(f => f.status === "dead") ) won++;
+      } else if ( foes.every(f => f.status === "beaten") ) won++;
     }
     expect(won).toBeGreaterThan(0);
     expect(won + lost).toBeGreaterThan(20);
@@ -85,6 +86,126 @@ describe("one track for the encounter", () => {
       { type: "end", resolved: "objectiveLost", winners: ["hostile"] }] };
     expect(trackProgress(plan, talked)).toMatchObject({ before: 8, after: 8 + 3 * TICKS[2], talked: 3 * TICKS[2], fought: 0, lost: true, achieved: false });
     expect(boxes(22)).toBe(5);
+  });
+});
+
+describe("beaten, or killed", () => {
+  const spec = cruel => fight([hero({ playstyles: cruel ? ["cruel"] : [], behavior: cruel ? { finishDowned: 0.4 } : {} }), foe(), foe({ id: "raider2" })]);
+
+  test("a foe whose track is full is beaten (the table says what that means); a Cruel character kills it", () => {
+    for ( const cruel of [false, true] ) {
+      let fallen = 0;
+      for ( let seed = 1; seed <= 30; seed++ ) {
+        const r = replay(spec(cruel), ironswornRules, seed);
+        for ( const id of ["raider", "raider2"] ) {
+          const f = r.units[id].final;
+          if ( f.status === "standing" ) continue;
+          if ( f.status !== "beaten" && f.status !== "dead" ) continue;
+          fallen++;
+          expect(f.status).toBe(cruel ? "dead" : "beaten");
+          const e = r.log.find(x => x.type === "beaten" && x.actorId === id);
+          expect(!!e?.killed).toBe(cruel);
+        }
+      }
+      expect(fallen).toBeGreaterThan(0);
+    }
+  });
+
+  test("an ally going down weighs on the characters beside it: Endure Stress", () => {
+    const run = createRun(prepareBattle(fight([hero(), hero({ id: "ash" }), foe()]), ironswornRules));
+    run.rng = createRng(4);
+    for ( const u of run.units ) ironswornRules.initUnit(u);
+    const [kara, ash] = [run.byId.get("kara"), run.byId.get("ash")];
+    const said = ironswornRules.onFall(run, ash, { dead: true });
+    expect(said.map(s => s.unit)).toEqual([kara]);
+    expect(said[0].data.stress).toBe(2);
+    // (A foe falling weighs on nobody: foes have no spirit.)
+    expect(ironswornRules.onFall(run, run.byId.get("raider"), {})).toEqual([]);
+  });
+});
+
+describe("someone taking a side mid-fight", () => {
+  /** Two characters, two raiders, and three taking no side: a team of two ("camp"), and one alone. */
+  const setUp = ({ track = true, rank = 2, leader = null } = {}) => {
+    const join = f => (track ? joinEncounter(f, { rank }) : f);
+    const neutral = (id, group) => foe({ id, side: "neutralParty", ...(group ? { group } : {}) });
+    const run = createRun(prepareBattle({
+      ...fight([hero(), hero({ id: "ash" }), join(foe()), join(foe({ id: "raider2" })), neutral("hunter", "camp"), neutral("tracker", "camp"), neutral("loner")]),
+      sides: { friendly: { label: "Ironsworn", enemies: ["hostile"] }, hostile: { label: "Foes", enemies: ["friendly"] }, neutralParty: { label: "Neutral", enemies: [] } },
+      command: leader ? { camp: [{ id: leader, role: "leader" }] } : {}
+    }, ironswornRules));
+    run.rng = createRng(2);
+    for ( const u of run.units ) ironswornRules.initUnit(u);
+    const said = [];
+    const turns = who => turnOn(run, run.byId.get(who), run.byId.get("kara"), "insulted", (u, e) => said.push(e));
+    // (What it means is settled at the next turn.)
+    const settle = () => [ironswornRules.startTurn(run, run.byId.get("raider"))].flat();
+    return { run, said, turns, settle, raider: run.byId.get("raider"), kara: run.byId.get("kara") };
+  };
+
+  test("a whole team turning on the party: the objective is a step harder, and they're part of its track", () => {
+    const { run, turns, settle, raider } = setUp();
+    turns("hunter");
+    turns("tracker");
+    expect(run.byId.get("hunter")).toMatchObject({ sharedHp: ENCOUNTER, hp: raider.hp });
+    const said = settle();
+    expect(said).toEqual([expect.objectContaining({ data: expect.objectContaining({ move: "foe", trackRank: 3 }) })]);
+    expect(raider).toMatchObject({ trackRank: 3, trackTicks: TICKS[3], convinceSteps: STEPS[3] });
+    expect(run.byId.get("tracker").trackTicks).toBe(TICKS[3]);
+    expect(ironswornRules.applyIwr(raider.spec.iwr, { harm: 2 }, raider)).toBe(2 * TICKS[3]);
+    // (The fight's own change: the stored foe is as it was, for the next fight.)
+    expect(raider.spec.iwr.ticksPerHarm).toBe(TICKS[2]);
+    expect(trackProgress({ mode: "encounter", rank: 2, before: 0, foeIds: [], friendly: "friendly" }, { units: {}, log: said.map(x => x.data) }).rank).toBe(3);
+  });
+
+  test("a leader turning on the party makes it harder too; one of a team, or one alone, is stress", () => {
+    const led = setUp({ leader: "hunter" });
+    led.turns("hunter");
+    expect(led.settle()[0].data.trackRank).toBe(3);
+    for ( const who of ["hunter", "loner"] ) {
+      const { turns, settle, raider } = setUp();
+      turns(who);
+      const said = settle();
+      expect(said[0].data).toMatchObject({ move: "foe" });
+      expect(said.slice(1).map(x => x.unit.id).sort()).toEqual(["ash", "kara"]);
+      expect(said.slice(1).every(x => x.data.move === "stress")).toBe(true);
+      expect(raider.trackRank ?? 2).toBe(2);
+    }
+  });
+
+  test("never to epic: a step that would make it epic is stress instead; so is each foe on its own track", () => {
+    for ( const opts of [{ rank: 4 }, { track: false }] ) {
+      const { turns, settle } = setUp(opts);
+      turns("hunter");
+      turns("tracker");
+      expect(settle().slice(1).every(x => x.data.move === "stress")).toBe(true);
+    }
+  });
+
+  test("once a conflict: whoever turns on the party later changes nothing more", () => {
+    const { turns, settle } = setUp();
+    turns("loner");
+    expect(settle().length).toBeGreaterThan(0);
+    turns("hunter");
+    turns("tracker");
+    expect(settle()).toEqual([]);
+  });
+
+  test("joining the party, the first to: a success on the encounter's track (never the last), or +1 momentum each", () => {
+    const { run, raider } = setUp();
+    const said = [];
+    joinSide(run, run.byId.get("hunter"), "friendly", (u, e) => said.push(e));
+    expect(said.at(-1)).toMatchObject({ move: "ally", marked: TICKS[2] });
+    expect(raider.hp).toBe(TRACK - TICKS[2]);
+    // (Once a conflict.)
+    expect(ironswornRules.onAllegiance(run, run.byId.get("tracker"), { joined: "friendly" })).toEqual([]);
+    const near = setUp();
+    near.raider.hp = near.run.byId.get("raider2").hp = 3;
+    ironswornRules.onAllegiance(near.run, near.run.byId.get("hunter"), { joined: "friendly" });
+    expect(near.raider.hp).toBe(1);
+    const plain = setUp({ track: false });
+    ironswornRules.onAllegiance(plain.run, plain.run.byId.get("hunter"), { joined: "friendly" });
+    expect(plain.kara.resources.momentum).toBe(3);
   });
 });
 

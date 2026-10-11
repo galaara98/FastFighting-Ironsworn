@@ -17,12 +17,16 @@
  * a miss pays the price in stress, and a miss on matching dice is a demand that costs dearly, a point of supply.
  * One track for the encounter (conflict.js): Take Decisive Action once it's well along (7 boxes); a miss loses the
  * objective, and the fight with it.
+ * A foe whose track is full is beaten: out of the fight, however the table decides (killed, out of action, fled,
+ * surrendered); the core has one who would kill (the Cruel) kill it. An ally going down weighs on the characters
+ * beside it: Endure Stress (1; 2 when it's killed).
  *
  * Who's in a fight is "a mover" (spec.mover: a character, who rolls) or a foe (spec.rank). Foes still act against
  * creatures that aren't characters (a companion, a hired hand), with a plain attack.
  */
-import { DOWNED_MODELS, STATUS } from "./core.js";
-import { movesFor, MOMENTUM, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
+import { DOWNED_MODELS, STATUS, localize } from "./core.js";
+import { movesFor, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
+import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS } from "./conflict.js";
 import { t, statName } from "./words.js";
 
 const BASE_DC = 10;
@@ -105,12 +109,16 @@ export const ironswornRules = {
   critical(parts) {
     return parts ?? [];
   },
-  /** Harm on a foe marks its track (ticks by its rank); on anyone else it's health. */
-  applyIwr(iwr, byType) {
+  /**
+   * Harm on a foe marks its track (ticks by its rank, or the encounter's as the fight has left it); on anyone else it's
+   * health.
+   */
+  applyIwr(iwr, byType, target = null) {
+    const per = target?.trackTicks ?? iwr?.ticksPerHarm;
     let total = 0;
     for ( const [type, amount] of Object.entries(byType) ) {
       if ( amount <= 0 || iwr?.immune?.includes(type) ) continue;
-      total += type === "harm" && iwr?.ticksPerHarm ? amount * iwr.ticksPerHarm : amount;
+      total += type === "harm" && per ? amount * per : amount;
     }
     return total;
   },
@@ -122,7 +130,7 @@ export const ironswornRules = {
     if ( action.move === "strike" ) return !!u.control;
     if ( action.move === "clash" ) return !u.control;
     // (The encounter's objective: only well along, since a miss loses it.)
-    if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= (target.spec.sharedHp ? 7 : 5);
+    if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= (sharedOf(target) ? 7 : 5);
     // Securing an advantage (Secure an Advantage, Gain Ground, Aid Your Ally) is for one in control.
     if ( action.move === "advantage" ) return !!u.control;
     return true;
@@ -164,24 +172,13 @@ export const ironswornRules = {
     return isMover(attacker) || !isMover(target);
   },
   /**
-   * The first turn: Enter the Fray, +shadow to spring an ambush, +wits ambushed; otherwise Ironsworn's +heart, or
-   * Starforged's best of +edge (on the move), +heart (facing off) and +iron (in the thick of it). A miss: Ironsworn's
-   * Pay the Price (-1 momentum here), Starforged's bad spot alone.
+   * The start of a turn: whoever turned on the party since the last one settles what that means (settleJoins); and a
+   * character's first turn is Enter the Fray.
    */
   startTurn(run, u) {
-    if ( !isMover(u) || u.control !== undefined ) return null;
-    const m = movesOf(u);
-    const surprise = run.prep.options.surpriseSide;
-    const stats = u.spec.stats ?? {};
-    const stat = surprise === u.side ? "shadow" : surprise ? "wits"
-      : (m.fray.stats ?? ["heart"]).reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
-    const roll = actionRoll(run.rng, stats[stat] ?? 1);
-    u.control = roll.degree >= 2;
-    if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);
-    if ( roll.degree <= 1 && m.fray.missMomentum ) setMomentum(u, momentumOf(u) + m.fray.missMomentum);
-    const lost = m.fray.missMomentum ? t("MomentumChange", { n: m.fray.missMomentum }) : "";
-    const what = { 3: `${m.control.on}${t("MomentumChange", { n: "+2" })}`, 2: m.control.on, 1: `${m.control.off}${lost}`, 0: `${m.control.off}${lost}` }[roll.degree];
-    return { text: t("MoveRoll", { move: m.fray.name, stat: statName(stat), total: roll.total, dice: roll.challenge.join(", "), what }), data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
+    const said = settleJoins(run);
+    const fray = enterTheFray(run, u);
+    return fray ? [...said, fray] : said;
   },
   /** Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. */
   adjustRoll(run, u, roll, ctx) {
@@ -205,7 +202,7 @@ export const ironswornRules = {
     else if ( move === "finish" ) {
       u.control = roll.degree >= 2;
       // One track for the encounter: a miss loses the objective, and the fight with it.
-      if ( roll.degree <= 1 && ctx.target?.spec.sharedHp ) run.resolved ??= { side: ctx.target.side, outcome: "objectiveLost" };
+      if ( roll.degree <= 1 && sharedOf(ctx.target) ) run.resolved ??= { side: ctx.target.side, outcome: "objectiveLost" };
       // A weak hit wins it, at a cost (here: a little of its edge).
       if ( roll.degree === 2 ) setMomentum(u, momentumOf(u) - 2);
     }
@@ -327,14 +324,72 @@ export const ironswornRules = {
     return { text: base + t("Endure.Standing", { d100 }), data: said };
   },
 
+  /**
+   * An ally going down (or beaten, or killed) weighs on the characters fighting beside it: each Endures Stress, 1
+   * (2 when it's killed).
+   */
+  onFall(run, u, { dead = false } = {}) {
+    const out = [];
+    for ( const c of run.units ) {
+      if ( c === u || !isMover(c) || c.side !== u.side || c.status !== STATUS.STANDING || u.spec.hazard ) continue;
+      out.push({ unit: c, ...endureStress(run, c, dead ? 2 : 1, run.rng) });
+    }
+    return out;
+  },
+
+  /**
+   * Someone taking a side mid-fight (one taking no side, won over or turning on one), once in a conflict each way.
+   * Joining the party (or turning on its enemies), the first to: a success, a mark of progress on the encounter's
+   * track (never the last: the fight still has to win it), or, with each foe's own track, +1 momentum for each
+   * character. Turning on the party (or joining its enemies): part of the encounter's track, and the first moment it
+   * happens settles what it means (settleJoins).
+   */
+  onAllegiance(run, u, { joined = null, against = null } = {}) {
+    const foes = run.prep.sides[PARTY]?.enemies ?? new Set();
+    const helps = joined === PARTY || (!!against && foes.has(against));
+    const hinders = (!!joined && foes.has(joined)) || against === PARTY;
+    if ( helps === hinders ) return [];
+    const state = run.sideTaken ??= { helped: false, hindered: false, pending: null };
+    // (Everyone on the encounter's track, whatever its side: one who turned on the party is on it too.)
+    const track = run.units.filter(o => o !== u && sharedOf(o) === ENCOUNTER && o.status === STATUS.STANDING);
+    const characters = run.units.filter(o => isMover(o) && o.side === PARTY && o.status === STATUS.STANDING);
+    if ( hinders ) {
+      // Part of the encounter's track now (one objective covers every foe), as hard as it is.
+      if ( track.length ) {
+        u.sharedHp = ENCOUNTER;
+        u.maxHp = TRACK;
+        u.hp = track[0].hp;
+        u.trackRank = trackRankOf(track[0]);
+        u.trackTicks = track[0].trackTicks ?? track[0].spec.iwr?.ticksPerHarm;
+        u.convinceSteps = track[0].convinceSteps ?? track[0].spec.social?.steps;
+      }
+      // (What it means is settled once, at the next turn, with whoever else turned at the same moment: settleJoins.)
+      if ( !state.hindered ) (state.pending ??= new Set()).add(u.id);
+      return [];
+    }
+    // (Once in a conflict: the first to join the party.)
+    if ( state.helped ) return [];
+    state.helped = true;
+    {
+      if ( track.length ) {
+        const ticks = track[0].trackTicks ?? track[0].spec.iwr?.ticksPerHarm ?? 0;
+        for ( const o of track ) o.hp = Math.max(1, o.hp - ticks);
+        return [{ unit: u, text: t("Allegiance.Success", { n: ticks }), data: { move: "ally", marked: ticks } }];
+      }
+      if ( !characters.length ) return [];
+      for ( const c of characters ) setMomentum(c, momentumOf(c) + 1);
+      return [{ unit: u, text: t("Allegiance.Bolster"), data: { move: "ally" } }];
+    }
+  },
+
   /* Dying ----------------------------------------------------------------- */
   /**
-   * A foe whose track is full is out of the fight (defeated). A character at 0 health fights on, the rest of the harm
-   * coming off its momentum (Endure Harm decides what more happens).
+   * A foe whose track is full is beaten: out of the fight, however the table decides. A character at 0 health fights
+   * on, the rest of the harm coming off its momentum (Endure Harm decides what more happens).
    */
   onDropped(c, { model = DOWNED_MODELS.SIMULATE, overflow = 0 } = {}) {
     if ( !isMover(c) ) {
-      c.status = STATUS.DEAD;
+      c.status = STATUS.BEATEN;
       return c.status;
     }
     c.hp = 0;
@@ -431,6 +486,71 @@ export const ironswornRules = {
     return type === "harm" ? "bludgeoning" : type;
   }
 };
+
+/** The party's side: the characters'. */
+const PARTY = "friendly";
+
+/**
+ * A character's first turn: Enter the Fray, +shadow to spring an ambush, +wits ambushed; otherwise Ironsworn's +heart,
+ * or Starforged's best of +edge (on the move), +heart (facing off) and +iron (in the thick of it). A miss: Ironsworn's
+ * Pay the Price (-1 momentum here), Starforged's bad spot alone. Null for anyone else, or later.
+ */
+function enterTheFray(run, u) {
+  if ( !isMover(u) || u.control !== undefined ) return null;
+    const m = movesOf(u);
+    const surprise = run.prep.options.surpriseSide;
+    const stats = u.spec.stats ?? {};
+    const stat = surprise === u.side ? "shadow" : surprise ? "wits"
+      : (m.fray.stats ?? ["heart"]).reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
+    const roll = actionRoll(run.rng, stats[stat] ?? 1);
+    u.control = roll.degree >= 2;
+    if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);
+    if ( roll.degree <= 1 && m.fray.missMomentum ) setMomentum(u, momentumOf(u) + m.fray.missMomentum);
+    const lost = m.fray.missMomentum ? t("MomentumChange", { n: m.fray.missMomentum }) : "";
+    const what = { 3: `${m.control.on}${t("MomentumChange", { n: "+2" })}`, 2: m.control.on, 1: `${m.control.off}${lost}`, 0: `${m.control.off}${lost}` }[roll.degree];
+    return { text: t("MoveRoll", { move: m.fray.name, stat: statName(stat), total: roll.total, dice: roll.challenge.join(", "), what }), data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
+}
+
+/** A neutral's team (one of up to three): the others taking no side in its friend group, and it. With none, it's alone. */
+const teamOf = (run, u) => (u.spec.group ? run.units.filter(o => o.spec.side === "neutralParty" && o.spec.group === u.spec.group) : [u]);
+
+/** Does it lead: a boss, or the head of its group's chain of command? */
+const leads = (run, u) => !!u.isBoss || Object.values(run.prep.command ?? {}).some(chain => chain?.[0]?.id === u.id);
+
+/**
+ * Whoever turned on the party at one moment (the first: once in a conflict), settled at the next turn. A whole neutral
+ * team (two or more of them, every one still standing), or a leader among them: a harder fight, the encounter's rank up
+ * a step, never to epic (one track for the encounter). Anyone else, or no step to take: each character endures stress
+ * (1).
+ */
+function settleJoins(run) {
+  const state = run.sideTaken;
+  if ( !state?.pending ) return [];
+  const turned = state.pending;
+  state.pending = null;
+  state.hindered = true;
+  const joiners = [...turned].map(id => run.byId.get(id)).filter(Boolean);
+  if ( !joiners.length ) return [];
+  const wholeTeam = joiners.some(j => {
+    const team = teamOf(run, j);
+    return team.length >= 2 && team.every(o => turned.has(o.id) || o.status !== STATUS.STANDING);
+  });
+  const many = wholeTeam || joiners.some(j => leads(run, j));
+  const track = run.units.filter(o => sharedOf(o) === ENCOUNTER && o.status === STATUS.STANDING);
+  const rank = trackRankOf(track[0]);
+  if ( many && track.length && rank && rank + 1 <= 4 ) {
+    const next = rank + 1;
+    for ( const o of track ) {
+      o.trackRank = next;
+      o.trackTicks = TICKS[next];
+      o.convinceSteps = STEPS[next];
+    }
+    return [{ unit: joiners[0], text: t("Allegiance.Harder", { rank: localize(`IRONSWORN.CHALLENGERANK.${RANK_KEYS[next]}`) }), data: { move: "foe", trackRank: next } }];
+  }
+  const characters = run.units.filter(o => isMover(o) && o.side === PARTY && o.status === STATUS.STANDING);
+  if ( !characters.length ) return [];
+  return [{ unit: joiners[0], text: t("Allegiance.Dread"), data: { move: "foe" } }, ...characters.map(c => ({ unit: c, ...endureStress(run, c, 1, run.rng) }))];
+}
 
 /** What's left of a character's supply, which its side shares (after anything any of them paid). */
 function supplyLeft(u) {

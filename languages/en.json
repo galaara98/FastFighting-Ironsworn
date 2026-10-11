@@ -76,6 +76,12 @@
       "Price": "{price}",
       "Demand": "a demand that costs dearly (-1 {what})"
     },
+    "Allegiance": {
+      "Success": "joins the fight beside them: a success (progress marked, {n} ticks)",
+      "Bolster": "joins the fight beside them: +1 momentum each",
+      "Harder": "turns on them: the objective is harder ({rank})",
+      "Dread": "turns on them, and it weighs on them all"
+    },
     "Conflict": {
       "Title": "Conflict",
       "Hint": "How this encounter is tracked, as Ironsworn and Starforged play it: success is progress on a track; things going wrong cost health, spirit or supply.",
@@ -149,6 +155,7 @@
       "Retreated": "Retreated from the fight",
       "Beaten": "Beaten: track complete ({n}/10)",
       "Defeated": "Beaten (the encounter's track)",
+      "Killed": "Killed",
       "Progress": "Progress {from}/10 → {to}/10 ({n} ticks)",
       "TalkedAway": "Talked into leaving (token hidden)",
       "Fled": "Fled (token hidden)",

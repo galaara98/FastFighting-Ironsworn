@@ -105,7 +105,7 @@ export function describeEncounterTrack(plan, replay) {
   if ( plan?.mode !== "encounter" || !plan.holderTokenId ) return null;
   const p = trackProgress(plan, replay);
   if ( p.after === p.before && !p.achieved && !p.lost ) return null;
-  const lines = [t("Conflict.Progress", { from: boxes(p.before), to: boxes(p.after), rank: rankName(plan.rank), holder: plan.holderName ?? "" })];
+  const lines = [t("Conflict.Progress", { from: boxes(p.before), to: boxes(p.after), rank: rankName(p.rank), holder: plan.holderName ?? "" })];
   if ( p.achieved ) lines.push(t("Conflict.Achieved"));
   else if ( p.lost ) lines.push(t("Conflict.Lost"));
   return { title: t("Conflict.Record"), lines };
@@ -127,12 +127,12 @@ export async function commitEncounterTrack(plan, replay) {
   const existing = (plan.trackId ? actor.items.get(plan.trackId) : null) ?? encounterTrack(actor, canvas.scene?.id);
   if ( existing ) {
     undo.itemUpdates.push({ id: existing.id, update: { "system.current": existing.system.current ?? 0, "system.rank": existing.system.rank, "system.completed": !!existing.system.completed } });
-    await existing.update({ "system.current": p.after, "system.rank": plan.rank, "system.completed": p.achieved });
+    await existing.update({ "system.current": p.after, "system.rank": p.rank, "system.completed": p.achieved });
   } else {
     const [item] = await actor.createEmbeddedDocuments("Item", [{
       type: "progress",
       name: t("Conflict.TrackName", { scene: canvas.scene?.name ?? "" }),
-      system: { subtype: "progress", rank: plan.rank, current: p.after, completed: p.achieved, hasTrack: true },
+      system: { subtype: "progress", rank: p.rank, current: p.after, completed: p.achieved, hasTrack: true },
       flags: { [MODULE]: { encounter: canvas.scene?.id ?? null } }
     }]);
     if ( item ) undo.createdItems.push(item.id);
@@ -158,10 +158,10 @@ export function describeIronswornOutcome(spec, final) {
   const before = ticks(spec.hp.value);
   const after = ticks(final.hp);
   // (On one track for the encounter, its progress is the encounter's: Make it So writes it once, on its keeper.)
-  if ( spec.sharedHp ) {
-    if ( final.status === STATUS.DEAD ) lines.push(t("Out.Defeated"));
-  } else if ( final.status === STATUS.DEAD ) lines.push(t("Out.Beaten", { n: Math.floor(after / 4) }));
-  else if ( after > before ) lines.push(t("Out.Progress", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
+  if ( !spec.sharedHp && after > before && after < TRACK ) lines.push(t("Out.Progress", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
+  // Beaten: however the table decides; killed, by one who would kill.
+  if ( final.status === STATUS.BEATEN ) lines.push(spec.sharedHp ? t("Out.Defeated") : t("Out.Beaten", { n: Math.floor(after / 4) }));
+  else if ( final.status === STATUS.DEAD ) lines.push(t("Out.Killed"));
   if ( final.status === STATUS.FLED ) lines.push(final.swayed ? t("Out.TalkedAway") : t("Out.Fled"));
   else if ( final.status === STATUS.SURRENDERED ) lines.push(t("Out.Surrenders"));
   else if ( final.status === STATUS.STOOD_DOWN ) lines.push(t("Out.StandsDown"));
@@ -208,14 +208,15 @@ export async function commitIronswornOutcome(tokenDoc, spec, final, options = {}
     const marked = ticks(final.hp);
     const change = {};
     if ( marked !== track.system.current ) change["system.current"] = Math.max(track.system.current ?? 0, marked);
-    if ( final.status === STATUS.DEAD && !track.system.completed ) change["system.completed"] = true;
+    if ( [STATUS.DEAD, STATUS.BEATEN].includes(final.status) && !track.system.completed ) change["system.completed"] = true;
     if ( Object.keys(change).length ) {
       undo.itemUpdates.push({ id: track.id, update: { "system.current": track.system.current ?? 0, "system.completed": !!track.system.completed } });
       await track.update(change);
     }
   }
-  if ( final.status === STATUS.DEAD ) {
-    await setStatus(actor, "dead", true, undo, { overlay: true });
+  // Killed: dead. Beaten: out of the encounter (defeated), however the table decides.
+  if ( final.status === STATUS.DEAD || final.status === STATUS.BEATEN ) {
+    if ( final.status === STATUS.DEAD ) await setStatus(actor, "dead", true, undo, { overlay: true });
     const combatant = game.combat?.getCombatantsByToken?.(tokenDoc)?.[0];
     if ( combatant && !combatant.defeated ) {
       await combatant.update({ defeated: true });
