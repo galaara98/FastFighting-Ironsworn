@@ -1,0 +1,13 @@
+{
+  "FFIRONSWORN": {
+    "CoreTooOld": "FastFighting Ironsworn needs a newer FastFighting Core. Update FastFighting.",
+    "NeedsCore": "FastFighting Ironsworn needs the FastFighting module. Enable it in Manage Modules.",
+    "Momentum": "Momentum",
+    "CompelHeart": "Compel (heart)",
+    "CompelIron": "Compel (iron)",
+    "CompelShadow": "Compel (shadow)",
+    "Compel": "Compel",
+    "Rank": "rank",
+    "Heart": "heart"
+  }
+}
