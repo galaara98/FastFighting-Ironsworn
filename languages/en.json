@@ -24,7 +24,7 @@
       },
       "loreBoost": {
         "Name": "Lore-Collector advantage",
-        "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 3× a sure thing more often than not. Default 1.25×: Secure an Advantage's +1 on the next move is worth about that much on an action roll."
+        "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 3× a sure thing more often than not. Default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price. Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5×; the rest helps Compel a hardier foe."
       }
     },
     "SecureAnAdvantage": "Secure an Advantage"

@@ -2,6 +2,7 @@
  * Building the engine's actions and numbers for Ironsworn and Starforged characters and foes. Pure, unit-tested.
  */
 import { movesFor, TICKS, TRACK } from "./moves.js";
+import { LORE_BOOST } from "./lore.js";
 
 const harm = n => ({ dice: [], flat: n, type: "harm", persistent: false, category: null });
 
@@ -42,10 +43,10 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
 
 /**
  * How a Lore-Collector sizes a foe up: Secure an Advantage, assessing it (+wits). A hit makes its next attack, or its
- * next words (Compel: persuading, threatening, deceiving), likelier to succeed (`boost`: the world's setting, 1.25×
- * unless it says otherwise), at whoever it's aimed; a miss pays the price.
+ * next words (Compel: persuading, threatening, deceiving), likelier to succeed (`boost`: the world's setting, 2.35×
+ * unless it says otherwise: see lore.js), at whoever it's aimed; a miss pays the price.
  */
-export function loreSizeUp(stats, boost = 1.25) {
+export function loreSizeUp(stats, boost = LORE_BOOST.default) {
   return { mod: Number(stats?.wits) || 1, dc: 10, label: "Secure an Advantage", boost, uses: 1, anyFoe: true, missOutcome: { price: true, label: "Pay the Price" } };
 }
 

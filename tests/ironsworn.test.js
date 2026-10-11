@@ -248,7 +248,7 @@ describe("securing an advantage", () => {
 
 describe("a Lore-Collector in Ironsworn", () => {
   test("sizes a foe up by Securing an Advantage (+wits): a hit makes its next attack or words 25% likelier; a miss pays the price", () => {
-    expect(loreSizeUp({ wits: 3 })).toMatchObject({ mod: 3, label: "Secure an Advantage", boost: 1.25, uses: 1, anyFoe: true, missOutcome: { price: true } });
+    expect(loreSizeUp({ wits: 3 })).toMatchObject({ mod: 3, label: "Secure an Advantage", boost: 2.35, uses: 1, anyFoe: true, missOutcome: { price: true } });
     let boostedAfterHit = 0;
     let prices = 0;
     for ( let seed = 1; seed <= 30; seed++ ) {
