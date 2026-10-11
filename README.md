@@ -38,6 +38,7 @@ The characters make the moves, as in the game; foes never roll.
 - **Securing an advantage** (in control), with the character's best approach (its highest stat): Ironsworn's **Secure an Advantage** (a strong hit: +1 on the next move; a weak hit: +1 momentum) or Starforged's **Gain Ground** (a strong hit: +1 on the next move and +2 momentum; a weak hit: +1 on the next move). **Aid Your Ally** gives the same to a friend, and a strong hit puts both in control. A miss pays the price: -1 momentum, and the upper hand lost. A Strike usually does more, so a character secures an advantage when it fights poorly next to a friend who fights well, when it's set on helping (a stated desire), or when a friend asks it to (a friend's "Be bolstered by" desire, and a language in common). Momentum counts for something: a step toward burning it.
 - **A Lore-Collector** sizes a foe up by Securing an Advantage, assessing it (+wits). A hit makes its next attack, or its next Compel (persuading, threatening, deceiving), likelier to succeed, at whoever it's aimed, by the **Lore-Collector advantage** setting (1.25× to 3×; default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price). Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5× (+2 iron) or 1.75× (+1); the rest helps Compel a hardier foe, where the odds start low. A miss pays the price.
 - **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank.
+- **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise.
 
 ## Rules preference
 
@@ -50,6 +51,7 @@ With more than one ruleset on in the world, Ironsworn, Starforged and Sundered I
 
 - A character: health, momentum, a wound marked, and how it ended (out cold, dying, dead, or deathbound after Face Death).
 - A foe: progress marked on its track, the track completed when it was beaten (and its token marked defeated); a foe that fled is hidden.
+- Supply paid: lowered for every character on the payer's side, and (with the system's Shared Supply Tracker on, as it is by default) every character and starship it shares Supply with. Ground given: a mark of progress on the foe's track.
 
 Undo puts it all back.
 

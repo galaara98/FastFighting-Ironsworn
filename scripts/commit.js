@@ -9,7 +9,7 @@
  */
 import { STATUS } from "./core.js";
 import { t } from "./words.js";
-import { TRACK } from "./moves.js";
+import { TRACK, TICKS } from "./moves.js";
 
 export function statusesOf(actor) {
   const out = new Set(actor?.statuses ?? []);
@@ -25,6 +25,65 @@ const emptyRecord = (tokenDoc, actor) => ({
 
 /** Ticks a foe's track had marked going in, and coming out. */
 const ticks = hp => Math.max(0, Math.min(TRACK, TRACK - Math.max(0, hp)));
+
+/** Where a character's Supply is kept (a meter with a value, or a number), and how much it has. */
+const supplyPath = actor => (typeof actor?.system?.supply === "object" ? "system.supply.value" : "system.supply");
+export const supplyOf = actor => Math.max(0, Number(foundry.utils.getProperty(actor, supplyPath(actor))) || 0);
+
+/** Does the system share Supply between every character (its own setting)? */
+function sharedSupply() {
+  try {
+    return !!game.settings.get("foundry-ironsworn", "shared-supply");
+  } catch ( err ) {
+    return false;
+  }
+}
+
+/**
+ * What was given up to end a standoff (Make it So). Supply, a character's payment: its friendly side shares it, so
+ * every character on the giver's side has that much less; with the system's shared Supply, so does every character
+ * and starship it shares Supply with. Ground given, a foe's: progress marked on its own track, by its rank.
+ * @param {TokenDocument} giverDoc
+ * @param {TokenDocument|null} receiverDoc
+ * @param {object} concession   {kind: "money" (Supply) | "progress", amount}
+ * @param {object} [options]    {allies: the giver's side's tokens}
+ * @returns {Promise<object[]>} undo records
+ */
+export async function commitIronswornConcession(giverDoc, receiverDoc, concession, { allies = [] } = {}) {
+  const giver = giverDoc?.actor;
+  if ( !giver ) return [];
+  if ( concession.kind === "progress" ) {
+    const track = giver.items.find(i => i.type === "progress");
+    if ( !track ) return [];
+    const before = Number(track.system.current) || 0;
+    const after = Math.min(TRACK, before + (TICKS[Number(track.system.rank) || 2] ?? 8) * (concession.amount ?? 1));
+    if ( after === before ) return [];
+    const undo = emptyRecord(giverDoc, giver);
+    undo.itemUpdates.push({ id: track.id, update: { "system.current": before } });
+    await track.update({ "system.current": after });
+    return [undo];
+  }
+  if ( concession.kind !== "money" ) return [];
+  const value = Math.max(0, supplyOf(giver) - concession.amount);
+  const sharing = new Map();
+  for ( const doc of [giverDoc, ...allies] ) if ( doc?.actor?.type === "character" ) sharing.set(doc.actor.uuid, { doc, actor: doc.actor });
+  if ( sharedSupply() ) {
+    for ( const actor of game.actors ?? [] ) {
+      if ( ["character", "starship"].includes(actor.type) && !sharing.has(actor.uuid) ) sharing.set(actor.uuid, { doc: null, actor });
+    }
+  }
+  const records = [];
+  for ( const { doc, actor } of sharing.values() ) {
+    const path = supplyPath(actor);
+    const was = foundry.utils.getProperty(actor, path);
+    if ( was === undefined || Number(was) === value ) continue;
+    const undo = emptyRecord(doc, actor);
+    undo.actorUpdate[path] = was;
+    await actor.update({ [path]: value });
+    records.push(undo);
+  }
+  return records;
+}
 
 /** Human-readable list of what will change, for the confirmation dialog. */
 export function describeIronswornOutcome(spec, final) {

@@ -18,7 +18,7 @@ import { loreBoost } from "./lore.js";
 import { movesFor } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
-import { commitIronswornOutcome, describeIronswornOutcome } from "./commit.js";
+import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf } from "./commit.js";
 import { t } from "./words.js";
 
 /** Assets (and the like) for fighting at range. */
@@ -126,6 +126,8 @@ export class IronswornAdapter extends SystemAdapter {
       momentumMax: Number(sys.momentumMax ?? sys.momentum?.max ?? 10),
       wounded: !!sys.debility?.wounded,
       control: position === "inControl" ? true : position === "inABadSpot" ? false : undefined,
+      // No coins or goods: paying costs Supply, which the side shares (what one pays, all have that much less of).
+      valuables: { money: supplyOf(actor), denominations: [{ label: game.i18n.localize("IRONSWORN.Supply"), value: 1 }], stowed: [], wielded: [], pooled: true },
       traits: Object.fromEntries(Object.entries(derived.traits).map(([k, v]) => [k, { base: v, fudge: 0 }])),
       traitReasons: derived.reasons,
       flags: { ...derived.flags },
@@ -191,6 +193,8 @@ export class IronswornAdapter extends SystemAdapter {
         languages: talks ? ["common"] : [],
         mindless: nature === "machine"
       },
+      // (Nothing to pay with: made to give something up, it gives ground, a mark of progress on its track.)
+      valuables: { money: 0, denominations: null, stowed: [], wielded: [], progress: 1 },
       leadership: { id: tokenDoc.id, name: actor.name, rank: n.rank, pc: false }
     };
   }
@@ -225,7 +229,9 @@ export class IronswornAdapter extends SystemAdapter {
   }
 
   /** Ironsworn has no armor class (the planner leaves it out); its harm takes FastFighting's generic word. */
+  /** Ironsworn's words: no armor class; paying costs Supply. */
   term(key) {
+    if ( key === "money" ) return game.i18n.localize("IRONSWORN.Supply");
     return key === "ac" ? false : null;
   }
 
@@ -239,5 +245,9 @@ export class IronswornAdapter extends SystemAdapter {
 
   describeOutcome(spec, final) {
     return describeIronswornOutcome(spec, final);
+  }
+
+  async commitConcession(giverDoc, receiverDoc, concession, options) {
+    return commitIronswornConcession(giverDoc, receiverDoc, concession, options);
   }
 }
