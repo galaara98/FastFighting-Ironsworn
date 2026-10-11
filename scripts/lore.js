@@ -1,9 +1,9 @@
 /**
  * The Lore-Collector's payoff for sizing a foe up in Ironsworn: how much likelier its next rolls are to succeed, a
- * world setting from 1.25× to 2.5×. The default: Secure an Advantage's +1 on the next move is worth about this much on an action roll.
+ * world setting from 1.25× to 3×. The default: Secure an Advantage's +1 on the next move is worth about this much on an action roll.
  */
 
-export const LORE_BOOST = Object.freeze({ min: 1.25, max: 2.5, step: 0.05, default: 1.25 });
+export const LORE_BOOST = Object.freeze({ min: 1.25, max: 3, step: 0.05, default: 1.25 });
 const MODULE_ID = "fast-fighting-ironsworn";
 
 /** Register the setting (on init). */

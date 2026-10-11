@@ -24,7 +24,7 @@
       },
       "loreBoost": {
         "Name": "Lore-Collector advantage",
-        "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 2.5× a sure thing more often than not. Default 1.25×: Secure an Advantage's +1 on the next move is worth about that much on an action roll."
+        "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 3× a sure thing more often than not. Default 1.25×: Secure an Advantage's +1 on the next move is worth about that much on an action roll."
       }
     },
     "SecureAnAdvantage": "Secure an Advantage"
