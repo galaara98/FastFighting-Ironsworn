@@ -59,6 +59,8 @@ Hooks.once("fastFighting.init", api => {
   }
   api.registerAdapter("foundry-ironsworn", IronswornAdapter, { priority: 10, source: MODULE_ID });
   api.adviseTranslation?.(MODULE_ID, game.system.title, KNOWN_TRANSLATIONS);
+  // Words kept in English for now, while the system isn't translated (hardcoded-toEN.json).
+  api.keepEnglish?.(MODULE_ID);
 });
 
 /** The rules preference as pills: one click, one on at a time (the setting's own select, hidden, keeps the value). */
