@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { grade, scoreChances, chances, harmTable, movesFor, TICKS } from "../scripts/moves.js";
 import { ironswornRules, progressScore } from "../scripts/rules.js";
-import { characterMoves, foeNumbers, advantageMoves } from "../scripts/build.js";
+import { characterMoves, foeNumbers, advantageMoves, loreSizeUp } from "../scripts/build.js";
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
 import { replay, runBatchSync } from "../../FastFighting/scripts/engine/simulator.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
@@ -243,5 +243,30 @@ describe("securing an advantage", () => {
       aided += given.length;
     }
     expect(aided).toBeGreaterThan(0);
+  });
+});
+
+describe("a Lore-Collector in Ironsworn", () => {
+  test("sizes a foe up by Securing an Advantage (+wits): a hit makes its next attack or words 25% likelier; a miss pays the price", () => {
+    expect(loreSizeUp({ wits: 3 })).toMatchObject({ mod: 3, label: "Secure an Advantage", boost: 1.25, uses: 1, anyFoe: true, missOutcome: { price: true } });
+    let boostedAfterHit = 0;
+    let prices = 0;
+    for ( let seed = 1; seed <= 30; seed++ ) {
+      const scholar = hero({ id: "sage", stats: { edge: 1, heart: 2, iron: 2, shadow: 1, wits: 3 }, control: true, behavior: { study: 1 }, sizeUp: loreSizeUp({ wits: 3 }), initiative: { mod: 20 } });
+      const r = replay(fight([scholar, foe({ rank: 2 })], { maxRounds: 3 }), ironswornRules, seed);
+      const study = r.log.find(e => e.type === "study" && e.actorId === "sage");
+      if ( !study ) continue;
+      const boosted = r.log.filter(e => e.type === "attack" && e.actorId === "sage" && e.boost > 0);
+      if ( study.worked ) {
+        expect(boosted.length).toBeLessThanOrEqual(1); // one roll only
+        boostedAfterHit += boosted.length;
+      } else {
+        expect(boosted).toHaveLength(0);
+        expect(study.price).toBe("Pay the Price");
+        prices++;
+      }
+    }
+    expect(boostedAfterHit).toBeGreaterThan(0);
+    expect(prices).toBeGreaterThan(0);
   });
 });

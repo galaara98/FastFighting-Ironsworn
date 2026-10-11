@@ -32,7 +32,7 @@ The characters make the moves, as in the game; foes never roll.
 - **End the Fight** (Starforged: Take Decisive Action): with the initiative and the foe's track at least half full, a progress roll. A hit ends that foe's part in the fight (a weak one costs momentum); a miss loses it, and the price is paid.
 - **Burning momentum:** when it turns a miss into a hit (or, with plenty to spare, a weak hit into a strong one); momentum resets after. Never on a progress roll.
 - **Securing an advantage** (in control), with the character's best approach (its highest stat): Ironsworn's **Secure an Advantage** (a strong hit: +1 on the next move; a weak hit: +1 momentum) or Starforged's **Gain Ground** (a strong hit: +1 on the next move and +2 momentum; a weak hit: +1 on the next move). **Aid Your Ally** gives the same to a friend, and a strong hit puts both in control. A miss pays the price: -1 momentum, and the upper hand lost. A Strike usually does more, so a character secures an advantage when it fights poorly next to a friend who fights well, when it's set on helping (a stated desire), or when a friend asks it to (a friend's "Be bolstered by" desire, and a language in common). Momentum counts for something: a step toward burning it.
-- **Gather Information** (+wits) is how a Lore-Collector sizes a foe up; it has to hit to pay off.
+- **A Lore-Collector** sizes a foe up by Securing an Advantage, assessing it (+wits). A hit makes its next attack, or its next Compel (persuading, threatening, deceiving), 25% likelier to succeed, at whoever it's aimed; a miss pays the price.
 - **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank.
 
 ## Rules preference

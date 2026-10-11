@@ -41,6 +41,15 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
 }
 
 /**
+ * How a Lore-Collector sizes a foe up: Secure an Advantage, assessing it (+wits). A hit makes its next attack, or its
+ * next words (Compel: persuading, threatening, deceiving), 25% likelier to succeed, at whoever it's aimed; a miss pays
+ * the price.
+ */
+export function loreSizeUp(stats) {
+  return { mod: Number(stats?.wits) || 1, dc: 10, label: "Secure an Advantage", boost: 1.25, uses: 1, anyFoe: true, missOutcome: { price: true, label: "Pay the Price" } };
+}
+
+/**
  * Securing an advantage in a fight (in control): Secure an Advantage (Starforged: Gain Ground) for itself, and Aid
  * Your Ally for a friend, each with its best approach (the stat it would envision it with). What a hit gives, by the
  * ruleset: +1 on the next move (spent by that move), momentum; a strong hit aiding a friend puts both in control. A
