@@ -42,11 +42,11 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
 
 /**
  * How a Lore-Collector sizes a foe up: Secure an Advantage, assessing it (+wits). A hit makes its next attack, or its
- * next words (Compel: persuading, threatening, deceiving), 25% likelier to succeed, at whoever it's aimed; a miss pays
- * the price.
+ * next words (Compel: persuading, threatening, deceiving), likelier to succeed (`boost`: the world's setting, 1.25×
+ * unless it says otherwise), at whoever it's aimed; a miss pays the price.
  */
-export function loreSizeUp(stats) {
-  return { mod: Number(stats?.wits) || 1, dc: 10, label: "Secure an Advantage", boost: 1.25, uses: 1, anyFoe: true, missOutcome: { price: true, label: "Pay the Price" } };
+export function loreSizeUp(stats, boost = 1.25) {
+  return { mod: Number(stats?.wits) || 1, dc: 10, label: "Secure an Advantage", boost, uses: 1, anyFoe: true, missOutcome: { price: true, label: "Pay the Price" } };
 }
 
 /**

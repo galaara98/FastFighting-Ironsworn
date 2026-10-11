@@ -4,6 +4,7 @@
  * So) through the core's public API.
  */
 import { IronswornAdapter } from "./adapter.js";
+import { registerLoreBoost } from "./lore.js";
 
 export const MODULE_ID = "fast-fighting-ironsworn";
 
@@ -14,6 +15,8 @@ const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 const NEEDS_API = 7;
 
 Hooks.once("init", () => {
+  // How much a Lore-Collector's sizing a foe up pays off (lore.js).
+  registerLoreBoost();
   // Ironsworn: a deadly weapon (a sword, an axe, a spear, a bow) inflicts 2 harm; unarmed or a simple weapon, 1.
   // Characters' sheets don't say what they carry, so the GM says what's usual at their table.
   game.settings.register(MODULE_ID, "deadlyWeapons", {

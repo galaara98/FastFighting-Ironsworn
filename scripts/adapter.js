@@ -14,6 +14,7 @@
 import { SystemAdapter } from "./core.js";
 import { ironswornRules } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp } from "./build.js";
+import { loreBoost } from "./lore.js";
 import { movesFor } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
@@ -129,8 +130,8 @@ export class IronswornAdapter extends SystemAdapter {
       flags: { ...derived.flags },
       diesAtZero: false,
       perception: stats.wits,
-      // Sizing a foe up (a Lore-Collector): Secure an Advantage, +wits; its next attack or words 25% likelier.
-      sizeUp: { ...loreSizeUp(stats), label: game.i18n.localize("FFIRONSWORN.SecureAnAdvantage") },
+      // Sizing a foe up (a Lore-Collector): Secure an Advantage, +wits; its next attack or words likelier (the setting).
+      sizeUp: { ...loreSizeUp(stats, loreBoost()), label: game.i18n.localize("FFIRONSWORN.SecureAnAdvantage") },
       creatureTraits: ["human"],
       social: {
         pitches: {
