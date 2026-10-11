@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { grade, scoreChances, chances, harmTable, TICKS } from "../scripts/moves.js";
+import { grade, scoreChances, chances, harmTable, movesFor, TICKS } from "../scripts/moves.js";
 import { ironswornRules, progressScore } from "../scripts/rules.js";
 import { characterMoves, foeNumbers } from "../scripts/build.js";
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
@@ -150,5 +150,49 @@ describe("a fight", () => {
     expect(strike.damage[0].flat).toBe(2);
     const [classic] = characterMoves({ id: "y", stats: { iron: 2 } });
     expect(classic.damage[0].flat).toBe(1);
+  });
+});
+
+describe("rules preference: a move of the same name in another ruleset", () => {
+  const both = ["classic", "starforged"];
+
+  test("a preferred ruleset's move of the same name replaces the character's own; moves called differently stay", () => {
+    const m = movesFor("starforged", "classic", both);
+    expect(m.strike.weak).toBe(1); // Ironsworn's Strike: harm, not progress twice
+    expect(m.strike.harm).toBe(true);
+    expect(m.fray.missMomentum).toBe(-1);
+    expect(m.endure.miss).toBe("momentum");
+    expect(m.finish.name).toBe("Take Decisive Action"); // (no Ironsworn move by that name)
+    expect(m.control.on).toBe("is in control");        // (its own words for it)
+    const c = movesFor("classic", "starforged", both);
+    expect(c.strike.weak).toBe(2);
+    expect(c.finish.name).toBe("End the Fight");
+  });
+
+  test("only when the world has the preferred ruleset on; Sundered Isles brings only its own moves", () => {
+    expect(movesFor("starforged", "classic", ["starforged"]).strike.weak).toBe(2);
+    const si = movesFor("classic", "sundered_isles", ["classic", "sundered_isles"]);
+    expect(si.fray.stats).toContain("iron"); // its Enter the Fray (played as Starforged's)
+    expect(si.fray.missMomentum).toBe(0);
+    expect(si.strike.weak).toBe(1);          // no Strike of its own: Ironsworn's stays
+  });
+
+  test("a deadly weapon's harm counts on Ironsworn's Strike, not on Starforged's progress", () => {
+    const [ironsworn] = characterMoves({ id: "a", stats: { iron: 2 }, extraHarm: 1, moves: movesFor("starforged", "classic", both) });
+    expect([ironsworn.damage[0].flat, ironsworn.critDamage[0].flat]).toEqual([2, 3]);
+    const [starforged] = characterMoves({ id: "b", stats: { iron: 2 }, extraHarm: 1, moves: movesFor("classic", "starforged", both) });
+    expect([starforged.damage[0].flat, starforged.critDamage[0].flat]).toEqual([2, 2]);
+  });
+
+  test("Endure Harm's miss: Ironsworn's costs momentum, Starforged's health", () => {
+    // A d6 of 1 against two 10s: a miss.
+    const miss = { die: faces => (faces === 6 ? 1 : 10), next: () => 0 };
+    const unit = moves => ({ spec: { moveRules: moves, mover: true, stats: { iron: 1 } }, status: "standing", hp: 3, maxHp: 5, resources: { momentum: 4 }, wounded: false });
+    const classic = unit(movesFor("classic"));
+    ironswornRules.afterHarm({}, classic, 1, miss);
+    expect([classic.hp, classic.resources.momentum]).toEqual([3, 3]);
+    const starforged = unit(movesFor("starforged"));
+    ironswornRules.afterHarm({}, starforged, 1, miss);
+    expect([starforged.hp, starforged.resources.momentum]).toEqual([2, 4]);
   });
 });

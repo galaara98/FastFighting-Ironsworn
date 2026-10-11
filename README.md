@@ -25,13 +25,23 @@ https://github.com/galaara98/FastFighting-Ironsworn/releases/latest/download/mod
 
 The characters make the moves, as in the game; foes never roll.
 
-- **Enter the Fray** (Starforged: Enter the Fight) on a character's first turn, +heart (+shadow when its side springs an ambush, +wits when ambushed): a strong hit, the initiative and +2 momentum; a weak hit, the initiative; a miss, a bad spot and -1 momentum.
+- **Enter the Fray** on a character's first turn: +shadow when its side springs an ambush, +wits when ambushed; otherwise Ironsworn's +heart, or Starforged's best of +edge, +heart and +iron. A strong hit, the initiative and +2 momentum; a weak hit, the initiative; a miss, a bad spot (Ironsworn: and Pay the Price, -1 momentum).
 - **Strike** with the initiative (in control), **Clash** without it: +iron up close, +edge at range. A hit marks progress on the foe's track, as many ticks a mark as its rank allows (troublesome 12, dangerous 8, formidable 4, extreme 2, epic 1). Ironsworn: a deadly weapon inflicts 2 harm, a simple one or bare hands 1 (characters' sheets don't say, so a world setting does: deadly by default); a strong Strike inflicts +1 harm and keeps the initiative; a weak Strike loses it; a strong Clash takes it. Starforged: a hit on a Strike marks progress twice; a strong hit keeps you in control.
 - **Pay the Price:** a miss, or a weak Clash, costs the foe's harm (its rank; one more on matching challenge dice).
-- **Endure Harm:** after any harm, +health or +iron: a strong hit shakes it off (+1 health, if not wounded) or embraces the pain (+1 momentum); a weak hit presses on; a miss costs a point of momentum. At 0 health a character fights on, harm beyond its health coming off its momentum; a miss there marks it wounded, or (already wounded) rolls on the harm table: mortal (Face Death, +heart: survive, survive deathbound, or die), dying, out cold, reeling, or still standing.
+- **Endure Harm:** after any harm, +health or +iron: a strong hit shakes it off (+1 health; Ironsworn's for a point of momentum, Starforged's free if not wounded) or embraces the pain (+1 momentum); a weak hit presses on (Starforged: a point of momentum for +1 health, if not wounded); a miss costs a point of momentum (Starforged: -1 health, or -2 momentum). At 0 health a character fights on, harm beyond its health coming off its momentum; a miss there marks it wounded, or (already wounded) rolls on the harm table: mortal (Face Death, +heart: survive, survive deathbound, or die), dying, out cold, reeling, or still standing.
 - **End the Fight** (Starforged: Take Decisive Action): with the initiative and the foe's track at least half full, a progress roll. A hit ends that foe's part in the fight (a weak one costs momentum); a miss loses it, and the price is paid.
 - **Burning momentum:** when it turns a miss into a hit (or, with plenty to spare, a weak hit into a strong one); momentum resets after. Never on a progress roll.
 - **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank.
+
+## Rules preference
+
+With more than one ruleset on in the world, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently: Strike, Clash, Endure Harm, Enter the Fray. A character makes its own sheet's moves, except where the ruleset the world prefers (**Settings → FastFighting Ironsworn → Rules preference**, when that ruleset is on) has a move of the same name: then it makes that one.
+
+- **Prefer Ironsworn moves when the names match** (the default)
+- **Prefer Starforged moves when the names match**
+- **Prefer Sundered Isles moves when the names match** (of the combat moves, Sundered Isles has its own Enter the Fray; for the rest a character keeps its own)
+
+Moves called differently stay the character's own (End the Fight, Take Decisive Action), and so do the words for who has the upper hand (the initiative, in control). A deadly weapon's harm counts only on Ironsworn's Strike and Clash; Starforged's mark progress.
 
 ## Make it So
 

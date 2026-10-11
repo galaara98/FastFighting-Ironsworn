@@ -16,13 +16,14 @@
  * creatures that aren't characters (a companion, a hired hand), with a plain attack.
  */
 import { DOWNED_MODELS, STATUS } from "./core.js";
-import { RULESETS, MOMENTUM, grade, chances, burnGrade, harmTable } from "./moves.js";
+import { movesFor, MOMENTUM, grade, chances, burnGrade, harmTable } from "./moves.js";
 
 const BASE_DC = 10;
 /** The engine's difficulty (a DC; 10 is ordinary) as adds: a hard talk, a friendly one. */
 const addsFor = dc => (Number.isFinite(dc) ? Math.round((BASE_DC - dc) / 3) : 0);
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const movesOf = u => RULESETS[u.spec.ruleset] ?? RULESETS.classic;
+/** The moves a character makes: as its spec says (its ruleset's, with the world's preference), else its ruleset's. */
+const movesOf = u => u.spec.moveRules ?? movesFor(u.spec.ruleset);
 const isMover = u => !!u?.spec?.mover;
 const harm = n => [{ dice: [], flat: n, type: "harm", persistent: false, category: null }];
 
@@ -115,18 +116,25 @@ export const ironswornRules = {
   canTarget(run, attacker, target) {
     return isMover(attacker) || !isMover(target);
   },
-  /** The first turn: Enter the Fray (Starforged: Enter the Fight), +heart (+shadow to ambush, +wits ambushed). */
+  /**
+   * The first turn: Enter the Fray, +shadow to spring an ambush, +wits ambushed; otherwise Ironsworn's +heart, or
+   * Starforged's best of +edge (on the move), +heart (facing off) and +iron (in the thick of it). A miss: Ironsworn's
+   * Pay the Price (-1 momentum here), Starforged's bad spot alone.
+   */
   startTurn(run, u) {
     if ( !isMover(u) || u.control !== undefined ) return null;
     const m = movesOf(u);
     const surprise = run.prep.options.surpriseSide;
-    const stat = surprise === u.side ? "shadow" : surprise ? "wits" : "heart";
-    const roll = actionRoll(run.rng, u.spec.stats?.[stat] ?? 1);
+    const stats = u.spec.stats ?? {};
+    const stat = surprise === u.side ? "shadow" : surprise ? "wits"
+      : (m.fray.stats ?? ["heart"]).reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
+    const roll = actionRoll(run.rng, stats[stat] ?? 1);
     u.control = roll.degree >= 2;
     if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);
-    if ( roll.degree <= 1 ) setMomentum(u, momentumOf(u) - 1);
-    const what = { 3: `${m.control.on}, +2 momentum`, 2: m.control.on, 1: `${m.control.off}, -1 momentum`, 0: `${m.control.off}, -1 momentum` }[roll.degree];
-    return { text: `${m.names.fray} (+${stat} ${roll.total} vs ${roll.challenge.join(", ")}): ${what}`, data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
+    if ( roll.degree <= 1 && m.fray.missMomentum ) setMomentum(u, momentumOf(u) + m.fray.missMomentum);
+    const lost = m.fray.missMomentum ? `, ${m.fray.missMomentum} momentum` : "";
+    const what = { 3: `${m.control.on}, +2 momentum`, 2: m.control.on, 1: `${m.control.off}${lost}`, 0: `${m.control.off}${lost}` }[roll.degree];
+    return { text: `${m.fray.name} (+${stat} ${roll.total} vs ${roll.challenge.join(", ")}): ${what}`, data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
   },
   /** Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. */
   adjustRoll(run, u, roll, ctx) {
@@ -159,27 +167,54 @@ export const ironswornRules = {
     const pays = degree <= 1 || (action.move === "clash" && degree === 2);
     if ( !pays ) return null;
     const amount = (target.spec.rank ?? 1) + (degree === 0 ? 1 : 0) + (action.move === "finish" && degree <= 1 ? 1 : 0);
-    return { label: movesOf(u).names.price, damage: harm(amount) };
+    return { label: movesOf(u).price.name, damage: harm(amount) };
   },
-  /** Endure Harm, for a character hurt (and still in the fight). */
+  /**
+   * Endure Harm, for a character hurt (and still in the fight). A strong hit shakes it off (+1 health; Ironsworn's at
+   * a point of momentum, and only above 0 health; Starforged's free, if not wounded) or embraces the pain (+1
+   * momentum). A weak hit presses on (Starforged: a point of momentum for +1 health, if not wounded). A miss costs a
+   * point of momentum (Starforged: it's worse than you thought, -1 health or -2 momentum). At 0 health, a wound or
+   * the harm table.
+   */
   afterHarm(run, u, amount, rng) {
     if ( !isMover(u) || u.status !== STATUS.STANDING ) return null;
     const m = movesOf(u);
     const stat = Math.max(Math.max(0, u.hp), u.spec.stats?.iron ?? 1);
     const roll = actionRoll(rng, stat);
-    const base = `${m.names.endure} (+${stat} ${roll.total} vs ${roll.challenge.join(", ")}): `;
+    const e = m.endure;
+    const base = `${e.name} (+${stat} ${roll.total} vs ${roll.challenge.join(", ")}): `;
     const data = { move: "endure", total: roll.total, challenge: roll.challenge, degree: roll.degree, harm: amount };
     if ( roll.degree === 3 ) {
-      if ( !u.wounded && u.hp < u.maxHp ) {
+      const can = u.hp < u.maxHp && (e.shakeCost ? u.hp > 0 && momentumOf(u) - e.shakeCost >= resetOf(u) : !u.wounded);
+      if ( can ) {
         u.hp += 1;
-        return { text: `${base}shakes it off (+1 health)`, data: { ...data, shook: true } };
+        if ( e.shakeCost ) setMomentum(u, momentumOf(u) - e.shakeCost);
+        return { text: `${base}shakes it off (+1 health${e.shakeCost ? `, -${e.shakeCost} momentum` : ""})`, data: { ...data, shook: true } };
       }
       setMomentum(u, momentumOf(u) + 1);
       return { text: `${base}embraces the pain (+1 momentum)`, data };
     }
-    if ( roll.degree === 2 ) return { text: `${base}presses on`, data };
-    setMomentum(u, momentumOf(u) - 1);
-    if ( u.hp > 0 ) return { text: `${base}reels (-1 momentum)`, data };
+    if ( roll.degree === 2 ) {
+      // (Starforged: a point of momentum for a point of health, when it's worth it.)
+      if ( e.weakTrade && !u.wounded && u.hp < u.maxHp && momentumOf(u) - 1 >= resetOf(u) ) {
+        u.hp += 1;
+        setMomentum(u, momentumOf(u) - 1);
+        return { text: `${base}presses on (+1 health, -1 momentum)`, data: { ...data, shook: true } };
+      }
+      return { text: `${base}presses on`, data };
+    }
+    if ( e.miss === "worse" ) {
+      // Starforged: it's worse than you thought: -1 health, or -2 momentum when health is what's short.
+      if ( u.hp > 1 ) {
+        u.hp -= 1;
+        return { text: `${base}worse than it looked (-1 health)`, data };
+      }
+      setMomentum(u, momentumOf(u) - 2);
+      if ( u.hp > 0 ) return { text: `${base}worse than it looked (-2 momentum)`, data };
+    } else {
+      setMomentum(u, momentumOf(u) - 1);
+      if ( u.hp > 0 ) return { text: `${base}reels (-1 momentum)`, data };
+    }
     // At 0 health: a wound, or (already wounded) the harm table.
     if ( !u.wounded ) {
       u.wounded = true;
@@ -194,12 +229,12 @@ export const ironswornRules = {
       said.faceDeath = face.degree;
       if ( face.degree <= 1 ) {
         u.status = STATUS.DEAD;
-        return { text: `${base}the harm is mortal (d100 ${d100}); ${m.names.face}: miss. Dies`, data: said };
+        return { text: `${base}the harm is mortal (d100 ${d100}); ${m.face.name}: miss. Dies`, data: said };
       }
       u.status = STATUS.DOWN;
       u.stable = true;
       u.deathbound = face.degree === 2;
-      return { text: `${base}the harm is mortal (d100 ${d100}); ${m.names.face}: ${face.degree === 3 ? "cast back into the world" : "lives, bound to a deathbound quest"}, out of the fight`, data: said };
+      return { text: `${base}the harm is mortal (d100 ${d100}); ${m.face.name}: ${face.degree === 3 ? "cast back into the world" : "lives, bound to a deathbound quest"}, out of the fight`, data: said };
     }
     if ( result === "dying" ) {
       u.status = STATUS.DOWN;

@@ -21,6 +21,21 @@ Hooks.once("init", () => {
     type: Boolean,
     default: true
   });
+  // With more than one ruleset on, Ironsworn, Starforged and Sundered Isles have moves of the same name (Strike, Clash,
+  // Endure Harm, Enter the Fray ...) that play differently: which one a character makes.
+  game.settings.register(MODULE_ID, "rulesPreference", {
+    name: "FFIRONSWORN.Settings.rulesPreference.Name",
+    hint: "FFIRONSWORN.Settings.rulesPreference.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      classic: "FFIRONSWORN.Settings.rulesPreference.classic",
+      starforged: "FFIRONSWORN.Settings.rulesPreference.starforged",
+      sundered_isles: "FFIRONSWORN.Settings.rulesPreference.sundered_isles"
+    },
+    default: "classic"
+  });
 });
 
 Hooks.once("fastFighting.init", api => {

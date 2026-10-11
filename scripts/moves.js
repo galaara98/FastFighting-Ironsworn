@@ -16,22 +16,63 @@ export const TRACK = 40;
 export const MOMENTUM = Object.freeze({ min: -6, max: 10, reset: 2 });
 
 /**
- * The combat moves, per ruleset: progress marked (harm inflicted) on a strong and a weak hit, and what the moves are
- * called. Ironsworn: Strike when you have initiative, Clash when your foe does, End the Fight. Starforged: Strike when
- * in control, Clash when in a bad spot, Take Decisive Action.
+ * The combat moves of each ruleset the system plays, by what they do here (the moves' names are the system's own):
+ *  - strike, clash: harm inflicted (Ironsworn) or progress marked (Starforged) on a strong and a weak hit; `harm` says
+ *    the weapon's harm counts (a deadly weapon's).
+ *  - fray: Enter the Fray: the stats it may roll (besides +shadow to spring an ambush and +wits ambushed), and what a
+ *    miss costs (Ironsworn: Pay the Price; Starforged: only a bad spot).
+ *  - endure: Endure Harm: what shaking it off costs, whether a weak hit can trade momentum for health, what a miss
+ *    costs.
+ *  - finish, price, face: End the Fight / Take Decisive Action, Pay the Price, Face Death (they play alike here).
+ * Ironsworn: Strike when you have the initiative, Clash when your foe does. Starforged: Strike in control, Clash in a
+ * bad spot. Sundered Isles plays Starforged's moves, with its own Enter the Fray (which plays the same way).
  */
-export const RULESETS = Object.freeze({
-  classic: Object.freeze({
-    strike: { strong: 2, weak: 1 }, clash: { strong: 1, weak: 1 },
-    names: { strike: "Strike", clash: "Clash", finish: "End the Fight", fray: "Enter the Fray", endure: "Endure Harm", price: "Pay the Price", face: "Face Death" },
-    control: { on: "has initiative", off: "loses initiative" }
-  }),
-  starforged: Object.freeze({
-    strike: { strong: 2, weak: 2 }, clash: { strong: 2, weak: 1 },
-    names: { strike: "Strike", clash: "Clash", finish: "Take Decisive Action", fray: "Enter the Fight", endure: "Endure Harm", price: "Pay the Price", face: "Face Death" },
-    control: { on: "is in control", off: "is in a bad spot" }
-  })
+const CLASSIC = Object.freeze({
+  strike: { name: "Strike", strong: 2, weak: 1, harm: true },
+  // (A strong Clash: "find an opening", +1 harm.)
+  clash: { name: "Clash", strong: 2, weak: 1, harm: true },
+  finish: { name: "End the Fight" },
+  fray: { name: "Enter the Fray", stats: ["heart"], missMomentum: -1 },
+  endure: { name: "Endure Harm", shakeCost: 1, weakTrade: false, miss: "momentum" },
+  price: { name: "Pay the Price" },
+  face: { name: "Face Death" },
+  control: { on: "has initiative", off: "loses initiative" }
 });
+const STARFORGED = Object.freeze({
+  strike: { name: "Strike", strong: 2, weak: 2 },
+  clash: { name: "Clash", strong: 2, weak: 1 },
+  finish: { name: "Take Decisive Action" },
+  fray: { name: "Enter the Fray", stats: ["edge", "heart", "iron"], missMomentum: 0 },
+  endure: { name: "Endure Harm", shakeCost: 0, weakTrade: true, miss: "worse" },
+  price: { name: "Pay the Price" },
+  face: { name: "Face Death" },
+  control: { on: "is in control", off: "is in a bad spot" }
+});
+const SUNDERED_ISLES = Object.freeze({ ...STARFORGED, fray: { ...STARFORGED.fray } });
+
+export const RULESETS = Object.freeze({ classic: CLASSIC, starforged: STARFORGED, sundered_isles: SUNDERED_ISLES });
+/** The moves each ruleset has of its own (Sundered Isles has only a few: of the combat moves, Enter the Fray). */
+const OWN_MOVES = Object.freeze({ classic: Object.keys(CLASSIC), starforged: Object.keys(STARFORGED), sundered_isles: ["fray"] });
+
+/**
+ * The moves a character makes in a fight: its own ruleset's, except that where the preferred ruleset (if the world has
+ * it on) has a move of the same name, it's played as that ruleset plays it. Moves called differently (End the Fight,
+ * Take Decisive Action) stay the character's own; so do the words for who's in control.
+ * @param {string} own                the character's ruleset (its sheet's): classic | starforged | sundered_isles
+ * @param {string|null} [preference]  the world's "Rules preference"
+ * @param {string[]|null} [enabled]   the rulesets on in the world (null: take the preferred one as on)
+ */
+export function movesFor(own, preference = null, enabled = null) {
+  const base = RULESETS[own] ?? CLASSIC;
+  const moves = { ...base, ruleset: RULESETS[own] ? own : "classic" };
+  const preferred = RULESETS[preference];
+  if ( !preferred || preference === own || (enabled && !enabled.includes(preference)) ) return moves;
+  for ( const key of OWN_MOVES[preference] ) {
+    const move = preferred[key];
+    if ( move?.name && moves[key]?.name === move.name ) moves[key] = move;
+  }
+  return moves;
+}
 
 /** A roll's degree from its score and the challenge dice: 3 strong hit, 2 weak hit, 1 miss, 0 a miss on a match. */
 export function grade(score, challenge) {

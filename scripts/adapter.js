@@ -5,7 +5,8 @@
  * A character: its stats, health and momentum (its reset and ceiling as its impacts leave them), a wound already
  * marked, who has the initiative if a fight is under way (Starforged's combat position), and whether it fights at
  * range (an asset like Archer or Gunner, or more edge than iron). Its moves: Strike and Clash (+iron close, +edge at
- * range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them.
+ * range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them; a move of the same name
+ * in the ruleset the world prefers (the "Rules preference" setting, when that ruleset is on) is played that way.
  * A foe: its progress track (its rank, and the ticks already marked) and what it is (the folder its compendium files
  * it under: Ironlanders, Firstborn, Animals, Beasts, Horrors; or its words), which says whether it can be talked to and
  * how it fights.
@@ -13,12 +14,23 @@
 import { SystemAdapter } from "./core.js";
 import { ironswornRules } from "./rules.js";
 import { characterMoves, foeNumbers } from "./build.js";
+import { movesFor } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome } from "./commit.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
+/** The rulesets on in the world (the system's "ruleset-..." settings). */
+const RULESET_KEYS = ["classic", "starforged", "sundered_isles"];
+const enabledRulesets = () => RULESET_KEYS.filter(r => { try { return !!game.settings.get("foundry-ironsworn", `ruleset-${r}`); } catch { return false; } });
+const rulesPreference = () => {
+  try {
+    return game.settings.get("fast-fighting-ironsworn", "rulesPreference") ?? "classic";
+  } catch ( err ) {
+    return "classic";
+  }
+};
 const deadlyWeapons = () => {
   try {
     return game.settings.get("fast-fighting-ironsworn", "deadlyWeapons") !== false;
@@ -66,6 +78,8 @@ export class IronswornAdapter extends SystemAdapter {
     const stat = k => Number(sys[k]) || 0;
     const stats = { edge: stat("edge"), heart: stat("heart"), iron: stat("iron"), shadow: stat("shadow"), wits: stat("wits") };
     const ruleset = this.#ruleset(actor);
+    // Its own ruleset's moves, a move of the same name in the preferred ruleset (when the world has it on) played that way.
+    const moveRules = movesFor(ruleset, rulesPreference(), enabledRulesets());
     const assets = actor.items.filter(i => i.type === "asset");
     const ranged = assets.some(a => RANGED.test(a.name)) || stats.edge > stats.iron;
     const health = Number(sys.health?.value ?? 5);
@@ -82,6 +96,7 @@ export class IronswornAdapter extends SystemAdapter {
       level: 1,
       mover: true,
       ruleset,
+      moveRules,
       stats,
       hp: { value: Math.max(0, health), max: Number(sys.health?.max ?? 5) || 5, temp: 0 },
       defenses: { ac: 10, fortitude: stats.iron, reflex: stats.edge, will: stats.heart },
@@ -89,7 +104,7 @@ export class IronswornAdapter extends SystemAdapter {
       initiative: { mod: stats.wits, stealth: stats.shadow },
       speeds: { walk: 30 },
       // (Ironsworn: armed with a deadly weapon, 2 harm a hit; a world setting for tables where that isn't so.)
-      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, extraHarm: ruleset === "classic" && deadlyWeapons() ? 1 : 0 }),
+      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, moves: moveRules, extraHarm: deadlyWeapons() ? 1 : 0 }),
       iwr: { immune: [], weak: {}, resist: {} },
       resources: { momentum: Number(sys.momentum?.value ?? 2) },
       momentumReset: Number(sys.momentumReset ?? sys.momentum?.resetValue ?? 2),
