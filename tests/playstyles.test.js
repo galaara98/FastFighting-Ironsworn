@@ -64,6 +64,12 @@ describe("what a character can do", () => {
     expect(self).toMatchObject({ setup: true, leans: ["hinders", "exploitWeakness"] });
   });
 
+  test("with assets, Securing an Advantage is its specialty (an Un-Mundane character leans on it)", () => {
+    const own = assets => characterMoves({ id: "me", stats: { edge: 2, iron: 1 }, assets }).find(a => a.move === "advantage" && a.targets === "self").special;
+    expect(own(true)).toBe(true);
+    expect(own(false)).toBe(false);
+  });
+
   test("in a hurry, End the Fight two boxes sooner", () => {
     const finish = { move: "finish" };
     const foe = unit("foe", "hostile", { rank: 2 }, { hp: 28, maxHp: 40 });

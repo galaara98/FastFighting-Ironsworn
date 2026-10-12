@@ -81,6 +81,7 @@ Every perk a playstyle (or a tactics answer) can switch on does something here. 
 
 Tactics answers:
 
+- **Magic and specialties** (an Un-Mundane character leans on them): a character with assets (a companion, a path, a ritual) brings them to bear by Securing an Advantage (Gain Ground), so that is its specialty; without assets, it has none. Strike, Clash, Compel, Aid Your Ally and Heal are what anyone could do.
 - **Resources** (conserve, balanced, nova): how readily it burns momentum. Conserving, it burns it only to turn a miss into a hit that matters, never a weak hit into a strong one. All out, it burns it to turn any miss into a hit, and a weak hit into a strong one with 4 or more.
 
 **Homebrew** (the books leave these to the table; this module's reading, kept to the game's own moves):

@@ -123,7 +123,7 @@ export class IronswornAdapter extends SystemAdapter {
       initiative: { mod: stats.wits, stealth: stats.shadow },
       speeds: { walk: 30 },
       // (Ironsworn: armed with a deadly weapon, 2 harm a hit; a world setting for tables where that isn't so.)
-      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, moves: moveRules, extraHarm: deadlyWeapons() ? 1 : 0 }),
+      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, moves: moveRules, extraHarm: deadlyWeapons() ? 1 : 0, assets: assets.length > 0 }),
       iwr: { immune: [], weak: {}, resist: {} },
       resources: { momentum: Number(sys.momentum?.value ?? 2) },
       momentumReset: Number(sys.momentumReset ?? sys.momentum?.resetValue ?? 2),

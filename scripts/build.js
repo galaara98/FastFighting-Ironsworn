@@ -18,8 +18,10 @@ const harm = n => ({ dice: [], flat: n, type: "harm", persistent: false, categor
  * @param {boolean} [d.ranged]        it fights at range too (a bow, a sidearm)
  * @param {number} [d.extraHarm]      harm added to each hit that inflicts harm (a deadly weapon, an asset)
  * @param {object} [d.moves]          the moves it makes (movesFor: its ruleset's, with the world's preference)
+ * @param {boolean} [d.assets]        it has assets (a companion, a path, a ritual): Securing an Advantage is how it
+ *                                    brings them to bear, its specialty (what "magic and specialties" means here)
  */
-export function characterMoves({ id, stats, ruleset = "classic", ranged = false, extraHarm = 0, moves = null }) {
+export function characterMoves({ id, stats, ruleset = "classic", ranged = false, extraHarm = 0, moves = null, assets = false }) {
   const m = moves ?? movesFor(ruleset);
   const out = [];
   const forms = [{ key: "close", stat: "iron", melee: true }];
@@ -39,7 +41,7 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
     id: `${id}.finish`, name: m.finish.name, kind: "strike", cost: 1, move: "finish", progressRoll: true, finish: true, bonus: 0,
     melee: true, reach: 5, range: null, damage: [harm(1)], critDamage: [harm(1)], traits: []
   });
-  out.push(...advantageMoves({ id, stats, moves: m }));
+  out.push(...advantageMoves({ id, stats, moves: m }).map(a => (a.targets === "self" ? { ...a, special: !!assets } : a)));
   out.push(healMove({ id, stats }));
   return out;
 }
