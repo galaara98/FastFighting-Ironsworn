@@ -23,11 +23,18 @@
  *
  * Who's in a fight is "a mover" (spec.mover: a character, who rolls) or a foe (spec.rank). Foes still act against
  * creatures that aren't characters (a companion, a hired hand), with a plain attack.
+ *
+ * Playstyles, in the game's terms. The price of a miss may be a friend put in harm's way (one of the books' own
+ * prices): a friend who goaded that foe, one who draws attacks or guards, or, when the one who missed keeps a low
+ * profile, a friend beside it. A foe that taunts doesn't roll: it provokes, and the character Faces Danger (+heart) to
+ * keep its head. Heal (+wits) mends a friend or itself; a Thief lifts something (+shadow) and the foe gives ground; a
+ * hazard makes those it reaches Face Danger (+edge). One in a hurry takes End the Fight on sooner; how freely a
+ * character uses resources says how readily it burns momentum.
  */
-import { DOWNED_MODELS, STATUS, localize } from "./core.js";
+import { DOWNED_MODELS, STATUS, localize, behaviorOf, applyOutcome, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
 import { movesFor, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
 import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS } from "./conflict.js";
-import { t, statName } from "./words.js";
+import { t, statName, moveName } from "./words.js";
 
 const BASE_DC = 10;
 /** The engine's difficulty (a DC; 10 is ordinary) as adds: a hard talk, a friendly one. */
@@ -104,9 +111,17 @@ export const ironswornRules = {
   /** A point on an action roll (a d6 against two d10s) moves far more than one on a d20: about a quarter more hits. */
   rollPoint: 0.25,
   minimumDamage: 0,
-  /** The few saves there are (a foe's attack on a companion): a strong hit avoids it. */
-  saveMultiplier(degree) {
+  /**
+   * The few saves there are (a foe's attack on a companion): a strong hit avoids it. Facing a hazard's danger: any hit
+   * gets clear of it (a weak hit at a cost: afterRoll).
+   */
+  saveMultiplier(degree, save) {
+    if ( save?.faceDanger ) return degree >= 2 ? 0 : 1;
     return degree >= 3 ? 0 : 1;
+  },
+  /** Heal: a hit, weak or strong, gives its +2 health (a weak hit's cost is afterRoll's). */
+  healCheckMultiplier(degree) {
+    return degree >= 2 ? 1 : 0;
   },
   critical(parts) {
     return parts ?? [];
@@ -132,9 +147,11 @@ export const ironswornRules = {
     if ( action.move === "strike" ) return !!u.control;
     if ( action.move === "clash" ) return !u.control;
     // (The encounter's objective: only well along, since a miss loses it.)
-    if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= (sharedOf(target) ? 7 : 5);
-    // Securing an advantage (Secure an Advantage, Gain Ground, Aid Your Ally) is for one in control.
-    if ( action.move === "advantage" ) return !!u.control;
+    // (One in a hurry, an Impatient or Speed-Runner one, takes it on two boxes sooner.)
+    if ( action.move === "finish" ) return !!u.control && !!target?.spec.rank && progressScore(target) >= (sharedOf(target) ? 7 : 5) - (u.hurried ? 2 : 0);
+    // Securing an advantage (Secure an Advantage, Gain Ground, Aid Your Ally), or taking the time to Heal, is for one in
+    // control.
+    if ( action.move === "advantage" || action.move === "heal" ) return !!u.control;
     return true;
   },
   /** Momentum a move gives (or costs), within its bounds; anything else as it is. */
@@ -169,9 +186,19 @@ export const ironswornRules = {
       if ( isMover(by) ) by.control = true;
     }
   },
-  /** Foes don't roll: they press a character only through the character's own moves. */
+  /** Foes don't roll: they press a character only through the character's own moves. A hazard catches anyone (Face Danger). */
   canTarget(run, attacker, target) {
-    return isMover(attacker) || !isMover(target);
+    return isMover(attacker) || !isMover(target) || !!attacker.spec.hazard;
+  },
+  /**
+   * A hazard (a trap, a raging river: anything the GM marks as one) catches a character as the game has it: it Faces
+   * Danger (+edge) against it. A miss, the hazard's harm; a weak hit, clear at a cost (-1 momentum); a strong hit, clear.
+   */
+  initRun(run) {
+    for ( const u of run.units ) {
+      if ( !u.spec.hazard ) continue;
+      u.prep.offense = u.prep.offense.map(a => (a.kind === "strike" ? { ...a, kind: "save", save: { type: "edge", dc: BASE_DC, faceDanger: true }, bonus: undefined } : a));
+    }
   },
   /**
    * The start of a turn: whoever turned on the party since the last one settles what that means (settleJoins); and a
@@ -180,7 +207,10 @@ export const ironswornRules = {
   startTurn(run, u) {
     const said = settleJoins(run);
     const fray = enterTheFray(run, u);
-    return fray ? [...said, fray] : said;
+    // In a hurry this turn (its playstyles' rush): End the Fight sooner (usable).
+    const rush = behaviorOf(u).rush ?? 0;
+    u.hurried = isMover(u) && rush > 0 && run.rng.chance(rush);
+    return [...said, fray, provoke(run, u)].filter(Boolean);
   },
   /** Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. */
   adjustRoll(run, u, roll, ctx) {
@@ -188,16 +218,34 @@ export const ironswornRules = {
     const momentum = momentumOf(u);
     const better = burnGrade(momentum, roll.challenge);
     if ( better === null || better <= roll.degree || momentum <= resetOf(u) ) return roll;
-    const worth = roll.degree <= 1 ? (ctx?.stakes ?? 0.3) >= 0.1 : momentum >= 6 || (ctx?.stakes ?? 0) >= 0.5;
+    // (How freely it uses resources: conserving, only to turn a miss into a hit that matters; all out, readily, and a
+    // weak hit into a strong one with less to spare.)
+    const use = u.tac?.resourceUse;
+    const stakes = ctx?.stakes ?? 0.3;
+    const worth = roll.degree <= 1
+      ? stakes >= (use === "conserve" ? 0.3 : use === "nova" ? 0 : 0.1)
+      : use !== "conserve" && (momentum >= (use === "nova" ? 4 : 6) || (ctx?.stakes ?? 0) >= (use === "nova" ? 0.3 : 0.5));
     if ( !worth ) return roll;
     setMomentum(u, resetOf(u));
     u.burned = (u.burned ?? 0) + 1;
     return { ...roll, total: momentum, degree: better, burned: momentum,
       said: { text: t(better === 3 ? "Burn.Strong" : "Burn.Weak", { n: momentum, label: ctx?.label ?? t("TheRoll") }), data: { momentum, degree: better, label: ctx?.label ?? "" } } };
   },
-  /** Who has the initiative after a move. */
+  /** Who has the initiative after a move; what Heal and facing a hazard cost. */
   afterRoll(run, u, roll, ctx) {
-    if ( !isMover(u) || ctx?.kind !== "attack" ) return;
+    if ( !isMover(u) ) return;
+    // Heal: a weak hit costs a point of momentum; a miss pays the price (a point, and the upper hand).
+    if ( ctx?.kind === "heal" ) {
+      if ( roll.degree <= 2 ) setMomentum(u, momentumOf(u) - 1);
+      if ( roll.degree <= 1 ) u.control = false;
+      return;
+    }
+    // Facing a hazard: a weak hit gets clear at a cost.
+    if ( ctx?.kind === "save" && ctx.type === "edge" && roll.degree === 2 ) {
+      setMomentum(u, momentumOf(u) - 1);
+      return;
+    }
+    if ( ctx?.kind !== "attack" ) return;
     const move = ctx.action?.move;
     if ( move === "strike" ) u.control = roll.degree === 3;
     else if ( move === "clash" ) u.control = roll.degree === 3;
@@ -217,7 +265,9 @@ export const ironswornRules = {
     const amount = (target.spec.rank ?? 1) + (degree === 0 ? 1 : 0) + (action.move === "finish" && degree <= 1 ? 1 : 0);
     // A horror's price is dread: stress, not harm.
     if ( target.spec.nature === "horror" && u.status === STATUS.STANDING ) return { label: movesOf(u).price.name, said: endureStress(run, u, amount, run.rng) };
-    return { label: movesOf(u).price.name, damage: harm(amount) };
+    const to = harmsWay(run, u, target);
+    if ( !to ) return { label: movesOf(u).price.name, damage: harm(amount) };
+    return { label: movesOf(u).price.name, damage: harm(amount), to, said: { text: t("HarmsWay", { name: to.spec.name }), data: { move: "price", to: to.id } } };
   },
   /**
    * Compel, for a character: a strong hit, +1 momentum; a miss pays the price, a refusal that weighs on it (Endure
@@ -493,17 +543,65 @@ export const ironswornRules = {
 const PARTY = "friendly";
 
 /**
+ * Pay the Price: "a friend is put in harm's way" (one of the books' own prices). Who: a friend whose taunt that foe is
+ * under; else a friend who draws attacks (its playstyles' drawAggro) or guards its friends (their protect), as likely
+ * as its perk; else, when the one who missed keeps a low profile (lowProfile), the foe's eye slides to a friend beside
+ * it who doesn't. Only a friend in the thick of it: beside the foe or the one who missed (without positions, any still
+ * fighting). Null: it pays itself.
+ */
+function harmsWay(run, u, foe) {
+  const near = o => !run.prep.options.positioning || o.adjacent?.has(foe.id) || o.adjacent?.has(u.id) || (edgeDistance(o, foe) ?? Infinity) <= 5;
+  const friends = run.units.filter(o => o !== u && o.side === u.side && isStanding(o) && !o.spec.hazard && near(o));
+  if ( !friends.length ) return null;
+  const taunter = friends.find(o => (foe.effects ?? []).some(e => e.taunt && e.sourceId === o.id));
+  if ( taunter ) return taunter;
+  const rng = run.rng;
+  for ( const o of rng.shuffle([...friends]) ) {
+    const draws = Math.max(Number(behaviorOf(o).drawAggro) || 0, Math.min(0.5, (Number(o.spec.desireStyle?.protect) || 0) / 50));
+    if ( draws > 0 && rng.chance(draws) ) return o;
+  }
+  const low = Number(behaviorOf(u).lowProfile) || 0;
+  const open = friends.filter(o => !(Number(behaviorOf(o).lowProfile) > 0));
+  return low > 0 && open.length && rng.chance(low) ? rng.pick(open) : null;
+}
+
+/**
+ * A foe that taunts (its playstyles' taunt: a Tank, an Instigator, a Brawler the GM made it) doesn't roll: it provokes,
+ * as often as a playstyle taunt takes hold (the Taunting setting times its share), the character it would draw: one
+ * pressing it, else the nearest. That character Faces Danger (+heart) to keep its head: a hit, it does; a miss, it rises
+ * to it (the core's taunt: it wants to go for that foe) unless it shrugs taunts off (its playstyles' tauntProof).
+ */
+function provoke(run, foe) {
+  if ( isMover(foe) || foe.spec.hazard || run.prep.options.talking === false || !foe.spec.social?.languages?.length ) return null;
+  const share = Math.min(1, Number(behaviorOf(foe).taunt) || 0);
+  if ( !(share > 0) ) return null;
+  const enemies = run.prep.sides[foe.side]?.enemies ?? new Set();
+  const marks = run.units.filter(o => isMover(o) && isStanding(o) && enemies.has(o.side) && !(o.effects ?? []).some(e => e.taunt && e.sourceId === foe.id));
+  if ( !marks.length || run.rng.die(100) > goadLuck(run, { goad: share }) ) return null;
+  const mark = marks.find(o => o.targetId === foe.id) ?? marks.sort((a, b) => (edgeDistance(a, foe) ?? 0) - (edgeDistance(b, foe) ?? 0))[0];
+  const roll = actionRoll(run.rng, mark.spec.stats?.heart ?? 1);
+  let what = "Holds";
+  if ( roll.degree <= 1 ) {
+    what = run.rng.chance(tauntProof(mark)) ? "Shrugs" : "Rises";
+    if ( what === "Rises" ) applyOutcome(mark, { taunt: true, rounds: 1, label: "" }, foe.id, { id: `${foe.id}.provoke` });
+  }
+  const line = t("MoveRoll", { move: moveName("FaceDanger"), stat: statName("heart"), total: roll.total, dice: roll.challenge.join(", "), what: t(`Provoke.${what}`) });
+  return { unit: mark, text: t("Provoke.Line", { foe: foe.spec.name, roll: line }), data: { move: "faceDanger", provokedBy: foe.id, degree: roll.degree, taunted: what === "Rises" } };
+}
+
+/**
  * A character's first turn: Enter the Fray, +shadow to spring an ambush, +wits ambushed; otherwise Ironsworn's +heart,
- * or Starforged's best of +edge (on the move), +heart (facing off) and +iron (in the thick of it). A miss: Ironsworn's
- * Pay the Price (-1 momentum here), Starforged's bad spot alone. Null for anyone else, or later.
+ * or Starforged's best of +edge (on the move), +heart (facing off) and +iron (in the thick of it); one keeping a low
+ * profile (its playstyles' lowProfile) may move into position unseen instead, +shadow. A miss: Ironsworn's Pay the
+ * Price (-1 momentum here), Starforged's bad spot alone. Null for anyone else, or later.
  */
 function enterTheFray(run, u) {
   if ( !isMover(u) || u.control !== undefined ) return null;
     const m = movesOf(u);
     const surprise = run.prep.options.surpriseSide;
     const stats = u.spec.stats ?? {};
-    const stat = surprise === u.side ? "shadow" : surprise ? "wits"
-      : (m.fray.stats ?? ["heart"]).reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
+    const ways = (behaviorOf(u).lowProfile ?? 0) > 0 ? [...(m.fray.stats ?? ["heart"]), "shadow"] : m.fray.stats ?? ["heart"];
+    const stat = surprise === u.side ? "shadow" : surprise ? "wits" : ways.reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
     const roll = actionRoll(run.rng, stats[stat] ?? 1);
     u.control = roll.degree >= 2;
     if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);

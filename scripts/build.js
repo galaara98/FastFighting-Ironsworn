@@ -40,7 +40,20 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
     melee: true, reach: 5, range: null, damage: [harm(1)], critDamage: [harm(1)], traits: []
   });
   out.push(...advantageMoves({ id, stats, moves: m }));
+  out.push(healMove({ id, stats }));
   return out;
+}
+
+/**
+ * Heal (the game's own move; in a fight, for one in control): +wits, for a friend or itself (the books have it roll
+ * the lower of wits and iron for its own wounds: here, wits either way). A hit gives +2 health (a weak hit costs a point
+ * of momentum); a miss pays the price.
+ */
+export function healMove({ id, stats }) {
+  return {
+    id: `${id}.heal`, name: moveName("Heal"), kind: "heal", cost: 1, move: "heal", reach: 5, traits: [],
+    heal: [{ dice: [], flat: 2, type: "healing", persistent: false, category: null }], healCheck: { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("Heal") }
+  };
 }
 
 /**
@@ -80,7 +93,9 @@ export function advantageMoves({ id, stats, moves }) {
   const price = { price: true, failed: true, rounds: 1, label: m.price.name };
   const check = { mod: best, dc: 10, label: m.advantage.name };
   return [
-    { id: `${id}.advantage`, name: m.advantage.name, kind: "buff", targets: "self", cost: 1, move: "advantage", check, traits: [],
+    // (Gaining leverage on a foe, finding its weak point: what a spoiler and a Puzzle-Maniac go for; one in a hurry
+    // doesn't stop for it.)
+    { id: `${id}.advantage`, name: m.advantage.name, kind: "buff", targets: "self", cost: 1, move: "advantage", check, traits: [], setup: true, leans: ["hinders", "exploitWeakness"],
       onDegree: [price, price, gives(m.advantage.weak), gives(m.advantage.strong)] },
     { id: `${id}.aid`, name: m.aid?.name ?? moveName("AidYourAlly"), kind: "buff", includeSelf: false, cost: 1, move: "advantage", traits: [],
       range: { increment: 120, max: 120, noPenalty: true }, check: { ...check, label: m.aid?.name ?? moveName("AidYourAlly") },

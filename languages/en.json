@@ -114,7 +114,9 @@
       "PaythePrice": "Pay the Price",
       "FaceDeath": "Face Death",
       "EndureStress": "Endure Stress",
-      "FaceDesolation": "Face Desolation"
+      "FaceDesolation": "Face Desolation",
+      "Heal": "Heal",
+      "FaceDanger": "Face Danger"
     },
     "Control": {
       "hasinitiative": "has initiative",
@@ -170,6 +172,14 @@
       "Heart": "heart {n}",
       "Rank": "rank {n}",
       "Title": "leads by title"
+    },
+    "HarmsWay": "{name} is put in harm's way",
+    "SkillMove": "{move} (+{stat})",
+    "Provoke": {
+      "Line": "{foe} provokes it: {roll}",
+      "Holds": "keeps its head",
+      "Rises": "rises to it",
+      "Shrugs": "rises to it, then shrugs it off"
     }
   }
 }

@@ -8,7 +8,7 @@ Ironsworn and Starforged support for [FastFighting Core](https://github.com/gala
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core (API 6)
+- **Needs:** FastFighting Core (API 11)
 
 ## Installation
 
@@ -58,6 +58,39 @@ The characters make the moves, as in the game; foes never roll.
 - **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank. A strong hit: +1 momentum. A miss pays the price: a refusal that weighs on the character (Endure Stress, 1); a miss on matching dice is also a demand that costs it dearly (a point of supply, to whoever it was talking to).
 - **Stress:** a horror's price is dread (Endure Stress, its rank) rather than harm. **Endure Stress** plays as Endure Harm does, on spirit (+spirit or +heart): a strong hit shakes it off or embraces the darkness (+1 momentum); a weak hit presses on; a miss costs momentum (Starforged: worse than it seemed). At 0 spirit a miss marks the character shaken; already shaken, it may falter (-1 momentum) or be overwhelmed: Face Desolation (+heart), and on a miss it gives up the fight.
 - **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise.
+
+## Playstyles in Ironsworn
+
+Every perk a playstyle (or a tactics answer) can switch on does something here. Most play as they do in any system (who a character goes for, when it loses heart, whom it listens to, how it talks). Foes don't roll, so what they would do comes through the characters' own moves. These are Ironsworn's own:
+
+| Perk (playstyles) | In Ironsworn |
+| --- | --- |
+| Drawing attacks, guarding, taunting (Tank, Martyr, Instigator, Redeem-Seeker; guards: Enabler, Moralist, Wants to Lead; taunters: Tank, Instigator, Martyr, Brawler, Redeem-Seeker) | A foe's attention is the price a character pays. When a friend misses, **Pay the Price** may put it **in harm's way** instead (one of the books' own prices). That's always a friend whose taunt the foe is under (Compel, provoking it). Otherwise it's one who draws attacks or guards its friends, as likely as its perk. |
+| Hard to spot (Chicken, Fragile, Wallflower) | When it misses, the foe's eye may slide to a friend beside it, who pays the price. On its first turn it may **Enter the Fray** moving into position unseen (+shadow), if that's its best. |
+| Hard to taunt (Relentless, Skeptic, Peacekeeper, Puzzle-Maniac, Diplomat, Chicken, Wallflower, Lazy) | A foe the GM made a taunter doesn't roll: it provokes. The character it would draw **Faces Danger** (+heart) to keep its head. On a miss it rises to it and wants to go for that foe, unless it shrugs taunts off. A foe provokes as often as a playstyle taunt takes hold (the Taunting setting). |
+| Spoiling, weak spots (Instigator most; Cruel, Wants to Lead, Wallflower, Puzzle-Maniac) | There are no conditions to lay and no damage types. **Secure an Advantage** (Gain Ground) is how it gains leverage or finds a weak point, likelier the more of a spoiler or Puzzle-Maniac it is. |
+| In a hurry (Impatient, Speed-Runner) | It takes on **End the Fight** (Take Decisive Action) two boxes sooner: at three boxes of a foe's own track, five of the encounter's. It doesn't stop to Secure an Advantage. |
+| Helping (Enabler, People-Pleaser, Moralist, Martyr, Redeem-Seeker, Tank) | **Aid Your Ally**. |
+| Mending, healing, rescue (Fragile, Moralist, Martyr, Enabler; "a friend falling: rescue") | **Heal** (+wits), in control. A hit gives +2 health (a weak hit costs a point of momentum). A miss pays the price. |
+| Thief | Lifts something with **Face Danger** (+shadow). A foe gives ground (a mark of progress on its track); a character gives up Supply. |
+| Trap avoiders (Thief, Puzzle-Maniac, Skeptic, Lore-Collector, Chicken, Wallflower) | A hazard (anything the GM marks as one) makes those it reaches **Face Danger** (+edge). A miss takes its harm; a weak hit gets clear at a cost (-1 momentum); a strong hit gets clear. A trap avoider may spot it and keep clear. |
+| Casters as targets (Puzzle-Maniac) | Horrors and the Firstborn count as casters: they have powers of that kind, if no spells. |
+| Lore-Collector | Sizes a foe up by Securing an Advantage (+wits): see **How a fight plays**. |
+| Finishing the fallen (Cruel); sparing them (Moralist, Peacekeeper, Diplomat) | A Cruel character kills a foe it beats. The rest leave a beaten foe for the table to decide. |
+| Acting first (Instigator) | The order the characters take their turns. |
+
+Tactics answers:
+
+- **Resources** (conserve, balanced, nova): how readily it burns momentum. Conserving, it burns it only to turn a miss into a hit that matters, never a weak hit into a strong one. All out, it burns it to turn any miss into a hit, and a weak hit into a strong one with 4 or more.
+
+**Homebrew** (the books leave these to the table; this module's reading, kept to the game's own moves):
+- Who is put in harm's way, and when.
+- A foe's provocation as Face Danger (+heart).
+- Theft as Face Danger (+shadow), and what a hit takes.
+- A hazard's Face Danger (+edge), and a weak hit's cost.
+- Heal in a fight only for one in control, and +wits for its own wounds too (the books say the lower of wits and iron).
+- End the Fight two boxes sooner for one in a hurry.
+- +shadow in the fray for one keeping a low profile.
 
 ## Rules preference
 

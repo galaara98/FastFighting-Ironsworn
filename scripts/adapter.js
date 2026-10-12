@@ -22,7 +22,7 @@ import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
-import { t } from "./words.js";
+import { t, moveName, statName } from "./words.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
@@ -117,7 +117,8 @@ export class IronswornAdapter extends SystemAdapter {
       moveRules,
       stats,
       hp: { value: Math.max(0, health), max: Number(sys.health?.max ?? 5) || 5, temp: 0 },
-      defenses: { ac: 10, fortitude: stats.iron, reflex: stats.edge, will: stats.heart },
+      // (The stats too: facing a hazard's danger is +edge.)
+      defenses: { ac: 10, fortitude: stats.iron, reflex: stats.edge, will: stats.heart, ...stats },
       shield: null,
       initiative: { mod: stats.wits, stealth: stats.shadow },
       speeds: { walk: 30 },
@@ -141,6 +142,8 @@ export class IronswornAdapter extends SystemAdapter {
       perception: stats.wits,
       // Sizing a foe up (a Lore-Collector): Secure an Advantage, +wits; its next attack or words likelier (the setting).
       sizeUp: { ...loreSizeUp(stats, loreBoost()), label: game.i18n.localize("FFIRONSWORN.SecureAnAdvantage") },
+      // A Thief lifting something: Face Danger, +shadow (the foe gives ground; a character, Supply).
+      theft: { skill: t("SkillMove", { move: moveName("FaceDanger"), stat: statName("shadow") }), mod: stats.shadow },
       creatureTraits: ["human"],
       social: {
         pitches: {
@@ -191,6 +194,8 @@ export class IronswornAdapter extends SystemAdapter {
       perception: n.rank,
       creatureTraits: [nature],
       creatureKind: nature, // (the planner groups neutrals by it)
+      // (No spells, but powers of that kind: horrors and the Firstborn are what a Puzzle-Maniac goes for as casters.)
+      caster: nature === "horror" || nature === "firstborn",
       social: {
         pitches: talks ? Object.fromEntries(["persuade", "intimidate", "deceive"].map(k => [k, { skill: game.i18n.localize("FFIRONSWORN.Compel"), mod: n.rank - 1 }])) : {},
         // (Compelling a foe in the middle of a fight is hard, and the harder the higher its rank.)
