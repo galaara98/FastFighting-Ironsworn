@@ -23,6 +23,7 @@ import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
+import { ironswornHints, ironswornTactics, assetKey } from "./auto.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
@@ -224,6 +225,36 @@ export class IronswornAdapter extends SystemAdapter {
     }
     this.#folders.set(source, name);
     return name;
+  }
+
+  /**
+   * What a character's system says for setting it up by itself (auto.js): a character's assets (by the system's ids), a
+   * foe's nature (by where its compendium files it, as read for its spec, or its words).
+   */
+  #facts(actor) {
+    if ( actor.type === "character" ) {
+      const ids = actor.items.filter(i => i.type === "asset").map(i => String(i.flags?.["foundry-ironsworn"]?.dsid ?? ""));
+      return { assets: ids.map(assetKey).filter(Boolean), rituals: ids.filter(id => id.includes("/ritual/")).length };
+    }
+    const track = actor.items.find(i => i.type === "progress");
+    const source = actor._stats?.compendiumSource ?? actor.flags?.core?.sourceId ?? null;
+    return { nature: natureOf({ folder: this.#folders.get(source) ?? "", name: actor.name, text: plain(track?.system.description) }) };
+  }
+
+  /** The playstyles Ironsworn says fit it (auto.js). */
+  playstyleHints(actor) {
+    return ironswornHints(this.#facts(actor));
+  }
+
+  /** Its own answers to the tactics questions (auto.js): a ranged asset's style, a shield-bearer guarding, horrors never breaking. */
+  tacticHints(actor) {
+    return ironswornTactics(this.#facts(actor));
+  }
+
+  /** A character's biography, a foe's description, as text. */
+  biography(actor) {
+    if ( actor.type === "character" ) return plain(actor.system?.biography);
+    return plain(actor.items.find(i => i.type === "progress")?.system.description);
   }
 
   deriveTraits(actor) {

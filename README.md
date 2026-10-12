@@ -8,7 +8,7 @@ Ironsworn and Starforged support for [FastFighting Core](https://github.com/gala
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core (API 11)
+- **Needs:** FastFighting Core (API 12)
 
 ## Installation
 
@@ -92,6 +92,17 @@ Tactics answers:
 - Heal in a fight only for one in control, and +wits for its own wounds too (the books say the lower of wits and iron).
 - End the Fight two boxes sooner for one in a hurry.
 - +shadow in the fray for one keeping a low profile.
+
+## Set up by itself
+
+When FastFighting sets a character up by itself (the first time it sees it: see the core's README), Ironsworn has its say:
+- **A character's assets,** by the system's id for each (the last part of it, so Ironsworn's, Starforged's and Sundered Isles' of the same name count alike):
+  - Shield-Bearer, Ironclad or Armored a Tank (guarding its friends); Archer, Slinger, Sniper, Gunner and the like a Wallflower (fighting at range); Berserker or Brawler a Brawler; Swordmaster, Blademaster or Duelist an Instigator;
+  - Banner-Sworn a Martyr who'd lead; Commander or Leader leads; Herbalist or Healer an Enabler (healing readily); Lorekeeper, Lore Hunter or Sleuth a Lore-Collector;
+  - Infiltrator, Shadow-Kin, Shade or Scoundrel a Thief; Ritualist, Seer, Kinetic and every ritual Un-Mundane; Revenant or Slayer Relentless; Oathbreaker a Redeem-Seeker; Loyalist a People-Pleaser;
+  - Fortune Hunter, Mercenary or Bounty Hunter a Mercenary; Diplomat or Empath a Diplomat; Firebrand an Instigator.
+- **A foe's nature:** horrors and machines Relentless (they never break); beasts and animals Brawlers (they stay where the fight is).
+- **Keywords:** a character's biography, a foe's description.
 
 ## Rules preference
 
