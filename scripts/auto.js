@@ -3,7 +3,7 @@
  * by itself (the core's foundry/auto-config.js): the playstyles that fit it and its own answers to the tactics
  * questions, from a character's assets (by the system's id for each: "asset:classic/combat_talent/shield_bearer", the
  * last part counting, so each ruleset's of the same name alike) and a foe's nature; and its biography or description as
- * plain text for the keywords. Pure.
+ * plain text for the keywords, what's said of it apart from its story. Pure.
  */
 
 /** What each asset leans toward, by the last part of its id. */
@@ -66,4 +66,45 @@ export function ironswornTactics({ assets = [], nature = null } = {}) {
 /** Text from the sheet's HTML. */
 export function plainText(html) {
   return String(html ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, "\"").replace(/\s+/g, " ").trim();
+}
+
+/** Pieces of text as one, for the keywords (the pieces apart, so no word runs into the next). */
+const together = texts => texts.filter(Boolean).join(". ");
+
+/**
+ * A character's words, for the keywords (the core counts what's said of it in full, its story a little). A Starforged
+ * (or Sundered Isles) sheet's characteristics are said of the character itself; its notes, an Ironsworn sheet's notes
+ * (kept as its biography), and its vows (their names and descriptions) are its story. The sheets have no dislikes.
+ * @param {object} d
+ * @param {boolean} [d.classic]   on an Ironsworn sheet
+ * @param {string} [d.biography]  (HTML)
+ * @param {string} [d.notes]      (HTML)
+ * @param {{name?: string, description?: string}[]} [d.vows]
+ * @returns {{about: string, story: string, against: string}}
+ */
+export function characterBiography({ classic = false, biography = "", notes = "", vows = [] } = {}) {
+  const sworn = (vows ?? []).flatMap(v => [plainText(v?.name), plainText(v?.description)]);
+  return {
+    about: classic ? "" : plainText(biography),
+    story: together([classic ? plainText(biography) : "", plainText(notes), ...sworn]),
+    against: ""
+  };
+}
+
+/** A quest starter in a foe's description: the book's hook for a story with it. */
+const QUEST_STARTER = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi;
+
+/**
+ * A foe's words, for the keywords: its description (its features, drives, tactics and lore) is about it; its quest
+ * starter is a story others are in.
+ * @param {string} html   its progress track's description
+ * @returns {{about: string, story: string, against: string}}
+ */
+export function foeBiography(html) {
+  const text = String(html ?? "");
+  return {
+    about: plainText(text.replace(QUEST_STARTER, " ")),
+    story: together([...text.matchAll(QUEST_STARTER)].map(m => plainText(m[1]))),
+    against: ""
+  };
 }

@@ -140,8 +140,15 @@
       "machine": "machine"
     },
     "Reason": {
-      "Sworn": "{heart} {n}: sworn to their companions",
-      "Rank": "{nature}, rank {r}"
+      "Rank": "{nature}, rank {r}",
+      "Pc": "Player character",
+      "Stat": "{name} {n}",
+      "Advances": "advances {n}",
+      "Count": "{name} {n}",
+      "VowRank": "{name} ({rank})",
+      "Kept": "{name} fulfilled {n}",
+      "Legacy": "{name} legacy {n}",
+      "Group": "comes as many"
     },
     "Out": {
       "Health": "Health {from} → {to}",

@@ -7,23 +7,25 @@
  * range (an asset like Archer or Gunner, or more edge than iron). Its moves: Strike and Clash (+iron close, +edge at
  * range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them; a move of the same name
  * in the ruleset the world prefers (the "Rules preference" setting, when that ruleset is on) is played that way.
- * A foe: its progress track (its rank, and the ticks already marked) and what it is (the folder its compendium files
- * it under: Ironlanders, Firstborn, Animals, Beasts, Horrors; or its words), which says whether it can be talked to and
- * how it fights.
+ * Its personality (traits.js), from everything on its sheet: its stats, assets, debilities or impacts, bonds or
+ * connections, vows and legacies.
+ * A foe: its progress track (its rank, and the ticks already marked) and what it is (its id: Ironlanders, Firstborn,
+ * Animals, Beasts, Horrors; else the folder its compendium files it under, or its words), which says whether it can be
+ * talked to, how it fights, and (with its rank and its kind) its personality.
  * The encounter (the planner's Ironsworn section, conflict.js): one track for it (Starforged's objective, at the rank
  * the GM gives it, kept on one of the characters) or each foe's own (Ironsworn's).
  */
-import { SystemAdapter } from "./core.js";
+import { SystemAdapter, hasWords, localize } from "./core.js";
 import { ironswornRules } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp } from "./build.js";
 import { loreBoost } from "./lore.js";
 import { movesFor } from "./moves.js";
-import { deriveIronswornTraits, natureOf, speaks } from "./traits.js";
+import { deriveIronswornTraits, natureOf, speaks, assetLeanKey } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
-import { ironswornHints, ironswornTactics, assetKey } from "./auto.js";
+import { ironswornHints, ironswornTactics, assetKey, plainText, characterBiography, foeBiography } from "./auto.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
@@ -45,7 +47,14 @@ const deadlyWeapons = () => {
     return true;
   }
 };
-const plain = html => String(html ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+/** The system's word for a key, or null when it has none. */
+const systemWord = key => (hasWords(key) ? localize(key) : null);
+/** The system's flags on a document (its dsid: "asset:classic/path/outcast", "npc:classic/ironlanders/raider"). */
+const ironFlags = doc => doc?.flags?.["foundry-ironsworn"] ?? {};
+/** A foe's id, on it or on its progress track. */
+const foeDsid = (actor, track) => String(ironFlags(actor).dsid || ironFlags(track).dsid || "");
+/** A key's first letter in capitals, as the system's language keys have it ("permanentlyharmed": Permanentlyharmed). */
+const capital = k => `${k.charAt(0).toUpperCase()}${k.slice(1)}`;
 
 export class IronswornAdapter extends SystemAdapter {
   static systemId = "foundry-ironsworn";
@@ -103,7 +112,7 @@ export class IronswornAdapter extends SystemAdapter {
     const ranged = assets.some(a => RANGED.test(a.name)) || stats.edge > stats.iron;
     const health = Number(sys.health?.value ?? 5);
     const position = sys.combatPosition;
-    const derived = deriveIronswornTraits({ pc: true, stats });
+    const derived = deriveIronswornTraits(this.#traitFacts(actor, ruleset));
     return {
       id: tokenDoc.id,
       tokenId: tokenDoc.id,
@@ -164,9 +173,8 @@ export class IronswornAdapter extends SystemAdapter {
     const track = actor.items.find(i => i.type === "progress");
     const rank = Number(track?.system.rank) || 2;
     const n = foeNumbers({ id: tokenDoc.id, rank, current: track?.system.current ?? 0 });
-    const folder = await this.#folderOf(actor);
-    const nature = natureOf({ folder, name: actor.name, text: plain(track?.system.description) });
-    const derived = deriveIronswornTraits({ pc: false, rank: n.rank, nature });
+    const nature = this.#nature(actor, track, await this.#folderOf(actor));
+    const derived = deriveIronswornTraits({ pc: false, rank: n.rank, nature, dsid: foeDsid(actor, track), name: actor.name });
     const talks = speaks(nature);
     return {
       id: tokenDoc.id,
@@ -229,16 +237,70 @@ export class IronswornAdapter extends SystemAdapter {
 
   /**
    * What a character's system says for setting it up by itself (auto.js): a character's assets (by the system's ids), a
-   * foe's nature (by where its compendium files it, as read for its spec, or its words).
+   * foe's nature (by its id, where its compendium files it, as read for its spec, or its words).
    */
   #facts(actor) {
     if ( actor.type === "character" ) {
       const ids = actor.items.filter(i => i.type === "asset").map(i => String(i.flags?.["foundry-ironsworn"]?.dsid ?? ""));
       return { assets: ids.map(assetKey).filter(Boolean), rituals: ids.filter(id => id.includes("/ritual/")).length };
     }
-    const track = actor.items.find(i => i.type === "progress");
+    return { nature: this.#nature(actor, actor.items.find(i => i.type === "progress")) };
+  }
+
+  /**
+   * What kind of foe it is: by its id (Ironlanders, Animals, Horrors ...; Starforged's by what the book says each is),
+   * else the folder its compendium files it under (as read for its spec, unless given), else its words.
+   */
+  #nature(actor, track, folder = null) {
     const source = actor._stats?.compendiumSource ?? actor.flags?.core?.sourceId ?? null;
-    return { nature: natureOf({ folder: this.#folders.get(source) ?? "", name: actor.name, text: plain(track?.system.description) }) };
+    return natureOf({ dsid: foeDsid(actor, track), folder: folder ?? this.#folders.get(source) ?? "", name: actor.name, text: plainText(track?.system.description) });
+  }
+
+  /**
+   * What a character's sheet says of who it is, for its traits (traits.js): its stats; its assets (by the system's id
+   * for each, else their names), what kind each is and how many of its abilities are marked; its debilities or impacts;
+   * its bonds (Ironsworn) or connections (Starforged); its vows; its legacies; and the system's words for them.
+   */
+  #traitFacts(actor, ruleset = this.#ruleset(actor)) {
+    const sys = actor.system ?? {};
+    const assets = actor.items.filter(i => i.type === "asset").map(i => {
+      const dsid = String(ironFlags(i).dsid ?? "");
+      const path = dsid.replace(/^asset:/, "").split("/");
+      return {
+        key: dsid || String(ironFlags(i).dfid ?? "") || i.name,
+        category: path.length === 3 ? path[1] : assetLeanKey(i.system?.category),
+        name: i.name,
+        enabled: (i.system?.abilities ?? []).filter(a => a?.enabled).length
+      };
+    });
+    const progress = actor.items.filter(i => i.type === "progress");
+    const debility = sys.debility ?? {};
+    const debilities = Object.keys(debility).filter(k => debility[k] === true);
+    // (The sheet's own word: an Ironsworn sheet's debilities, a Starforged sheet's impacts.)
+    const label = k => {
+      const keys = [`IRONSWORN.DEBILITY.${capital(k)}`, `IRONSWORN.IMPACT.${capital(k)}`];
+      return (ruleset === "classic" ? keys : keys.reverse()).map(systemWord).find(Boolean) ?? k;
+    };
+    const LEGACIES = ["quests", "bonds", "discoveries"];
+    return {
+      pc: true,
+      ruleset,
+      stats: Object.fromEntries(["edge", "heart", "iron", "shadow", "wits"].map(k => [k, Number(sys[k]) || 0])),
+      assets,
+      debilities,
+      bonds: actor.items.filter(i => i.type === "bondset").reduce((n, i) => n + (i.system?.bonds?.length ?? 0), 0),
+      connections: progress.filter(i => i.system?.subtype === "bond").map(i => ({ bonded: !!i.system.completed })),
+      vows: progress.filter(i => i.system?.subtype === "vow").map(i => ({ rank: Number(i.system.rank) || 1, completed: !!i.system.completed })),
+      legacies: Object.fromEntries(LEGACIES.map(k => [k, Number(sys.legacies?.[k]) || 0])),
+      names: {
+        debilities: Object.fromEntries(debilities.map(k => [k, label(k)])),
+        bonds: systemWord("IRONSWORN.ITEMS.TypeBond"),
+        connections: systemWord("IRONSWORN.ITEMS.SubtypeConnection"),
+        vows: systemWord("IRONSWORN.ITEMS.SubtypeVow"),
+        legacies: Object.fromEntries(LEGACIES.map(k => [k, systemWord(`IRONSWORN.LEGACY.${capital(k)}`)])),
+        ranks: Object.fromEntries(Object.entries(RANK_KEYS).map(([r, k]) => [r, systemWord(`IRONSWORN.CHALLENGERANK.${k}`)]))
+      }
+    };
   }
 
   /** The playstyles Ironsworn says fit it (auto.js). */
@@ -251,19 +313,26 @@ export class IronswornAdapter extends SystemAdapter {
     return ironswornTactics(this.#facts(actor));
   }
 
-  /** A character's biography, a foe's description, as text. */
+  /**
+   * Its words, for the keywords (auto.js): a Starforged sheet's characteristics are said of the character itself; its
+   * notes, an Ironsworn sheet's notes (kept as its biography) and its vows are its story. A foe's description is about
+   * it; its quest starter is a story.
+   */
   biography(actor) {
-    if ( actor.type === "character" ) return plain(actor.system?.biography);
-    return plain(actor.items.find(i => i.type === "progress")?.system.description);
+    if ( actor.type !== "character" ) return foeBiography(actor.items.find(i => i.type === "progress")?.system.description);
+    return characterBiography({
+      classic: this.#ruleset(actor) === "classic",
+      biography: actor.system?.biography,
+      notes: actor.system?.notes,
+      vows: actor.items.filter(i => i.type === "progress" && i.system?.subtype === "vow").map(i => ({ name: i.name, description: i.system.description }))
+    });
   }
 
+  /** Its personality (traits.js): a character's from everything on its sheet; a foe's from what it is and its rank. */
   deriveTraits(actor) {
-    if ( actor.type === "character" ) {
-      const sys = actor.system;
-      return deriveIronswornTraits({ pc: true, stats: { edge: sys.edge, heart: sys.heart, iron: sys.iron, shadow: sys.shadow, wits: sys.wits } });
-    }
+    if ( actor.type === "character" ) return deriveIronswornTraits(this.#traitFacts(actor));
     const track = actor.items.find(i => i.type === "progress");
-    return deriveIronswornTraits({ pc: false, rank: track?.system.rank ?? 2, nature: natureOf({ name: actor.name, text: plain(track?.system.description) }) });
+    return deriveIronswornTraits({ pc: false, rank: track?.system.rank ?? 2, nature: this.#nature(actor, track), dsid: foeDsid(actor, track), name: actor.name });
   }
 
   detectLeaders(specs) {

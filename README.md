@@ -8,7 +8,7 @@ Ironsworn and Starforged support for [FastFighting Core](https://github.com/gala
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core (API 12)
+- **Needs:** FastFighting Core (API 13)
 
 ## Installation
 
@@ -23,7 +23,21 @@ https://github.com/galaara98/FastFighting-Ironsworn/releases/latest/download/mod
 
 - **Characters:** edge, heart, iron, shadow and wits; health, momentum (its reset and its ceiling, as impacts leave them); a wound already marked; and, in a fight already under way, who has the initiative (the sheet's combat position). A character's sheet says which rules it plays by: the Ironsworn sheet the classic moves, the Starforged sheet Starforged's.
 - **Fighting at range:** a character with an asset for it (Archer, Slinger, Gunner, Sniper, a sidearm ...), or more edge than iron, can Strike and Clash at a distance (+edge) as well as up close (+iron).
-- **Foes:** the foe's progress track: its rank (troublesome to epic) and the ticks already marked on it. What it is comes from where its compendium files it (Ironlanders, Firstborn, Animals, Beasts, Horrors, Anomalies) or its words: people and the Firstborn can be talked to; horrors and machines don't break; beasts fight on instinct; the higher the rank, the bolder.
+- **Foes:** the foe's progress track: its rank (troublesome to epic) and the ticks already marked on it. What it is comes from its id (Ironlanders, Firstborn, Animals, Beasts, Horrors, Anomalies; Starforged's foes as the book has each: human, creature, monster, machine, horror), else where its compendium files it, else its words: people and the Firstborn can be talked to; horrors and machines don't break; beasts fight on instinct.
+
+## Personality
+
+Each trait's tooltip in the planner lists where it started and every part that moved it.
+
+- **A character** starts as the usual hero (bold, loyal, unselfish, a good head) and everything on its sheet moves it a little:
+  - its **stats**, against the usual spread's (3, 2, 2, 1, 1: on average, the usual hero): wits for Tactical; heart for Brave and Loyal, and less Selfish; iron for Brave; shadow more Selfish, a little less Loyal; edge a little more careful;
+  - its **assets**, by their id (Ironsworn's, Starforged's and Sundered Isles' of the same name alike), a little more for each upgrade: a Shield-Bearer or Banner-Sworn more loyal and bold, an Outcast or Fugitive less loyal, a Cutthroat or Mercenary more selfish, a Berserker bolder and less careful, the Honorbound, a Devotant or a Healer less selfish, a Lorekeeper or Sleuth a planner; a companion at its side a little more loyal;
+  - how far it has come: its upgrades, and the assets it took on beyond its first three (its ship aside), for Tactical;
+  - its **debilities or impacts**, for now: shaken, traumatized, tormented, wounded or maimed, less bold; corrupted, more selfish and less loyal; indebted or unprepared, more selfish; cursed (Ironsworn) or doomed, bound to death's quest, bolder;
+  - its **bonds** (Ironsworn) or **connections** (Starforged; one it has forged a bond with counts twice), beyond the first, for Loyal;
+  - its **vows**: sworn to more than the usual two, more loyal and less selfish; the more dangerous they are, the bolder; each one fulfilled, its word kept;
+  - its **legacies** (Starforged, Sundered Isles): quests for Brave, bonds for Loyal, discoveries for Tactical.
+- **A foe:** what it is (horrors and machines fearless, animals quick to flee, the Firstborn canny) and its rank (the higher, the bolder); then what the books say its kind is like, by its id (a raider greedy and bold and stands with its kin, common folk fearful for their families, a wolf with its pack, a servitor made to protect, a troll sly and selfish); and one that comes as many (a pack, a swarm, a boarding party) stands together.
 
 ## A conflict
 
@@ -102,7 +116,7 @@ When FastFighting sets a character up by itself (the first time it sees it: see 
   - Infiltrator, Shadow-Kin, Shade or Scoundrel a Thief; Ritualist, Seer, Kinetic and every ritual Un-Mundane; Revenant or Slayer Relentless; Oathbreaker a Redeem-Seeker; Loyalist a People-Pleaser;
   - Fortune Hunter, Mercenary or Bounty Hunter a Mercenary; Diplomat or Empath a Diplomat; Firebrand an Instigator.
 - **A foe's nature:** horrors and machines Relentless (they never break); beasts and animals Brawlers (they stay where the fight is).
-- **Keywords:** a character's biography, a foe's description.
+- **Keywords:** what's said of a character (a Starforged sheet's characteristics) in full; its notes (an Ironsworn sheet's notes) and its vows, its story, a little. A foe's description in full; its quest starter, a story, a little.
 
 ## Rules preference
 
