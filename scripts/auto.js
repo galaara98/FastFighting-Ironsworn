@@ -14,7 +14,7 @@ import { assetLeanKey, speaks } from "./traits.js";
 /** What each asset leans toward, by the last part of its id. */
 const ASSETS = Object.freeze({
   shield_bearer: { tank: 0.6 }, ironclad: { tank: 0.4 }, armored: { tank: 0.4 },
-  archer: { wallflower: 0.3 }, slinger: { wallflower: 0.3 }, long_arm: { wallflower: 0.3 }, sniper: { wallflower: 0.4 }, gunner: { wallflower: 0.3 },
+  archer: { wallflower: 0.3 }, slinger: { wallflower: 0.3 }, sniper: { wallflower: 0.4 }, gunner: { wallflower: 0.3 },
   gunslinger: { wallflower: 0.3 }, fletcher: { wallflower: 0.2 },
   berserker: { brawler: 0.4, impatient: 0.3 }, brawler: { brawler: 0.6 }, sunderer: { brawler: 0.3 }, thunder_bringer: { brawler: 0.3 },
   swordmaster: { instigator: 0.3 }, blademaster: { instigator: 0.3 }, weapon_master: { instigator: 0.3 }, weaponmaster: { instigator: 0.3 },
@@ -24,7 +24,7 @@ const ASSETS = Object.freeze({
   lorekeeper: { loreCollector: 0.5 }, lore_hunter: { loreCollector: 0.5 }, sleuth: { loreCollector: 0.4 },
   infiltrator: { thief: 0.4, wallflower: 0.2 }, shadow_kin: { thief: 0.3, wallflower: 0.3 }, shade: { thief: 0.3, wallflower: 0.3 },
   scoundrel: { thief: 0.4 }, trickster: { thief: 0.3, wildcard: 0.2 }, masked: { thief: 0.2, wallflower: 0.2 },
-  ritualist: { unmundane: 0.5 }, seer: { unmundane: 0.4 }, kinetic: { unmundane: 0.5 }, empowered: { unmundane: 0.4 },
+  ritualist: { unmundane: 0.5 }, seer: { unmundane: 0.4 }, kinetic: { unmundane: 0.5 }, empowered: { leader: 0.3 },
   spirit_bound: { unmundane: 0.3 }, sighted: { unmundane: 0.3 },
   revenant: { relentless: 0.4 }, slayer: { relentless: 0.3, vengeful: 0.2 }, oathbreaker: { redeemSeeker: 0.6 },
   outcast: { wallflower: 0.3 }, fugitive: { wallflower: 0.3 }, honorbound: { moralist: 0.3 }, devotant: { moralist: 0.3 },
