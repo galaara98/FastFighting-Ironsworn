@@ -443,13 +443,13 @@ export class IronswornAdapter extends SystemAdapter {
   }
 
   /**
-   * Ironsworn's words: no armor class; harm costs health (the system's word for it, else FastFighting's); paying costs
-   * Supply.
+   * Ironsworn's words: no armor class and no levels; harm costs health (the system's word for it, else FastFighting's);
+   * paying costs Supply.
    */
   term(key) {
     if ( key === "money" ) return game.i18n.localize("IRONSWORN.Supply");
     if ( key === "hp" ) return systemWord("IRONSWORN.Health");
-    return key === "ac" ? false : null;
+    return ["ac", "level"].includes(key) ? false : null;
   }
 
   resourceLabel(key) {

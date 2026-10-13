@@ -304,7 +304,7 @@ describe("read from the sheets, as the adapter does", () => {
     const system = { "IRONSWORN.Health": "Leben", "IRONSWORN.Supply": "Vorrat" };
     const own = game.i18n;
     game.i18n = { ...own, has: k => k in system || own.has(k), localize: k => system[k] ?? own.localize(k) };
-    expect([adapter.term("hp"), adapter.term("money"), adapter.term("ac"), adapter.term("sp")]).toEqual(["Leben", "Vorrat", false, null]);
+    expect([adapter.term("hp"), adapter.term("money"), adapter.term("ac"), adapter.term("level"), adapter.term("sp")]).toEqual(["Leben", "Vorrat", false, false, null]);
     // (A system without the word: FastFighting's own.)
     game.i18n = own;
     expect(adapter.term("hp")).toBeNull();
