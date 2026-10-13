@@ -20,12 +20,12 @@ import { ironswornRules } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp } from "./build.js";
 import { loreBoost } from "./lore.js";
 import { movesFor } from "./moves.js";
-import { deriveIronswornTraits, natureOf, speaks, assetLeanKey } from "./traits.js";
+import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
-import { ironswornHints, ironswornTactics, assetKey, plainText, characterBiography, foeBiography } from "./auto.js";
+import { ironswornHints, ironswornTactics, abilityMoves, assetKey, plainText, characterBiography, foeBiography } from "./auto.js";
 
 /** Assets (and the like) for fighting at range. */
 const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
@@ -51,6 +51,15 @@ const deadlyWeapons = () => {
 const systemWord = key => (hasWords(key) ? localize(key) : null);
 /** The system's flags on a document (its dsid: "asset:classic/path/outcast", "npc:classic/ironlanders/raider"). */
 const ironFlags = doc => doc?.flags?.["foundry-ironsworn"] ?? {};
+/**
+ * An asset as the system knows it: its id (else its older id, else its name), what kind it is (its id's middle part:
+ * "path", "ritual", "module"; else its category) and its name.
+ */
+const assetOf = i => {
+  const dsid = String(ironFlags(i).dsid ?? "");
+  const path = dsid.replace(/^asset:/, "").split("/");
+  return { key: dsid || String(ironFlags(i).dfid ?? "") || i.name, category: path.length === 3 ? path[1] : assetLeanKey(i.system?.category), name: i.name };
+};
 /** A foe's id, on it or on its progress track. */
 const foeDsid = (actor, track) => String(ironFlags(actor).dsid || ironFlags(track).dsid || "");
 /** A key's first letter in capitals, as the system's language keys have it ("permanentlyharmed": Permanentlyharmed). */
@@ -213,8 +222,9 @@ export class IronswornAdapter extends SystemAdapter {
         languages: talks ? ["common"] : [],
         mindless: nature === "machine"
       },
-      // (Nothing to pay with: made to give something up, it gives ground, a mark of progress on its track.)
-      valuables: { money: 0, denominations: null, stowed: [], wielded: [], progress: 1 },
+      // (Nothing to pay with: made to give something up, it gives ground, a mark of progress on its track. It may ask
+      // for Supply, as a raider would: what one of the side it asks pays, all of them have that much less of.)
+      valuables: { money: 0, denominations: [{ label: game.i18n.localize("IRONSWORN.Supply"), value: 1 }], stowed: [], wielded: [], progress: 1 },
       leadership: { id: tokenDoc.id, name: actor.name, rank: n.rank, pc: false }
     };
   }
@@ -263,16 +273,7 @@ export class IronswornAdapter extends SystemAdapter {
    */
   #traitFacts(actor, ruleset = this.#ruleset(actor)) {
     const sys = actor.system ?? {};
-    const assets = actor.items.filter(i => i.type === "asset").map(i => {
-      const dsid = String(ironFlags(i).dsid ?? "");
-      const path = dsid.replace(/^asset:/, "").split("/");
-      return {
-        key: dsid || String(ironFlags(i).dfid ?? "") || i.name,
-        category: path.length === 3 ? path[1] : assetLeanKey(i.system?.category),
-        name: i.name,
-        enabled: (i.system?.abilities ?? []).filter(a => a?.enabled).length
-      };
-    });
+    const assets = actor.items.filter(i => i.type === "asset").map(i => ({ ...assetOf(i), enabled: (i.system?.abilities ?? []).filter(a => a?.enabled).length }));
     const progress = actor.items.filter(i => i.type === "progress");
     const debility = sys.debility ?? {};
     const debilities = Object.keys(debility).filter(k => debility[k] === true);
@@ -308,9 +309,41 @@ export class IronswornAdapter extends SystemAdapter {
     return ironswornHints(this.#facts(actor));
   }
 
-  /** Its own answers to the tactics questions (auto.js): a ranged asset's style, a shield-bearer guarding, horrors never breaking. */
-  tacticHints(actor) {
-    return ironswornTactics(this.#facts(actor));
+  /**
+   * Its own answers to the tactics questions, and what it offers and expects (auto.js): a character's from its assets
+   * (the abilities marked on them, and the moves they make), its stats and its supply; a foe's from its nature and its
+   * kind (its id).
+   */
+  tacticHints(actor, spec, calc) {
+    return ironswornTactics(this.#tacticFacts(actor, spec), calc);
+  }
+
+  /**
+   * What the tactics answers are read from (auto.js): a character's stats, its supply and its assets (by the system's id
+   * for each, else their names; its kind; its name; each ability marked or not, and the moves its text links to); a
+   * foe's nature (as read for its spec), its kind (its id's last part), its name and its rank.
+   */
+  #tacticFacts(actor, spec) {
+    if ( actor.type === "character" ) {
+      const sys = actor.system ?? {};
+      return {
+        pc: true,
+        stats: Object.fromEntries(["edge", "heart", "iron", "shadow", "wits"].map(k => [k, Number(sys[k]) || 0])),
+        supply: supplyOf(actor),
+        assets: actor.items.filter(i => i.type === "asset").map(i => ({
+          ...assetOf(i),
+          abilities: (i.system?.abilities ?? []).map(a => ({ marked: !!a?.enabled, moves: abilityMoves(a?.description) }))
+        }))
+      };
+    }
+    const track = actor.items.find(i => i.type === "progress");
+    return {
+      pc: false,
+      nature: spec?.nature ?? this.#nature(actor, track),
+      key: foeId(foeDsid(actor, track))?.key ?? null,
+      name: actor.name,
+      rank: Number(track?.system.rank) || 2
+    };
   }
 
   /**

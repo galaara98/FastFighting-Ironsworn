@@ -8,7 +8,7 @@ Ironsworn and Starforged support for [FastFighting Core](https://github.com/gala
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core (API 13)
+- **Needs:** FastFighting Core (API 14)
 
 ## Installation
 
@@ -71,7 +71,7 @@ The characters make the moves, as in the game; foes never roll.
 - **A Lore-Collector** sizes a foe up by Securing an Advantage, assessing it (+wits). A hit makes its next attack, or its next Compel (persuading, threatening, deceiving), likelier to succeed, at whoever it's aimed, by the **Lore-Collector advantage** setting (1.25× to 3×; default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price). Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5× (+2 iron) or 1.75× (+1); the rest helps Compel a hardier foe, where the odds start low. A miss pays the price.
 - **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank. A strong hit: +1 momentum. A miss pays the price: a refusal that weighs on the character (Endure Stress, 1); a miss on matching dice is also a demand that costs it dearly (a point of supply, to whoever it was talking to).
 - **Stress:** a horror's price is dread (Endure Stress, its rank) rather than harm. **Endure Stress** plays as Endure Harm does, on spirit (+spirit or +heart): a strong hit shakes it off or embraces the darkness (+1 momentum); a weak hit presses on; a miss costs momentum (Starforged: worse than it seemed). At 0 spirit a miss marks the character shaken; already shaken, it may falter (-1 momentum) or be overwhelmed: Face Desolation (+heart), and on a miss it gives up the fight.
-- **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise.
+- **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise; a foe can ask for Supply (as a raider would), but has none to give.
 
 ## Playstyles in Ironsworn
 
@@ -109,7 +109,7 @@ Tactics answers:
 
 ## Set up by itself
 
-When FastFighting sets a character up by itself (the first time it sees it: see the core's README), Ironsworn has its say:
+When FastFighting sets a character up by itself (the first time it sees it: see the core's README), Ironsworn has its say on its playstyles:
 - **A character's assets,** by the system's id for each (the last part of it, so Ironsworn's, Starforged's and Sundered Isles' of the same name count alike):
   - Shield-Bearer, Ironclad or Armored a Tank (guarding its friends); Archer, Slinger, Sniper, Gunner and the like a Wallflower (fighting at range); Berserker or Brawler a Brawler; Swordmaster, Blademaster or Duelist an Instigator;
   - Banner-Sworn a Martyr who'd lead; Commander or Leader leads; Herbalist or Healer an Enabler (healing readily); Lorekeeper, Lore Hunter or Sleuth a Lore-Collector;
@@ -117,6 +117,34 @@ When FastFighting sets a character up by itself (the first time it sees it: see 
   - Fortune Hunter, Mercenary or Bounty Hunter a Mercenary; Diplomat or Empath a Diplomat; Firebrand an Instigator.
 - **A foe's nature:** horrors and machines Relentless (they never break); beasts and animals Brawlers (they stay where the fight is).
 - **Keywords:** what's said of a character (a Starforged sheet's characteristics) in full; its notes (an Ironsworn sheet's notes) and its vows, its story, a little. A foe's description in full; its quest starter, a story, a little.
+
+### Let this character decide
+
+What "Let this character decide" stands for, question by question, where Ironsworn's data says something; the GM sees each answer with its reason (an asset's or a foe's name, a stat, a nature). Anything it says nothing about is the core's reading of the character's hidden scores.
+
+**A character**, from its assets (by the system's id; the asset itself for who it is, the abilities marked on it for what it does, the first one counting if none is marked; a ship's or vehicle's modules aren't its own), its stats and its supply. Where its assets disagree, the answer most of them give, and none on a tie:
+- **Fighting style:** the weapon its asset is for: a bow, sling, rifle, heavy gun or pistols at range (Archer, Slinger, Sniper, Gunner, Gunslinger, Musketeer, Pistoleer); a shield guarding (Shield-Bearer, who also goes for whoever attacks its friends); a blade, axe, hammer, staff or armor up close (Swordmaster, Blademaster, Duelist, Sunderer, Thunder-Bringer, Long-Arm, Brawler, Berserker, Ironclad, Armored, Swashbuckler); a dagger or a veil from the shadows (Cutthroat, Dancer, Shade). No such asset: iron up close, edge at range, whichever is higher.
+- **Who to attack first:** a Berserker the nearest; a Duelist, Slayer or Bounty Hunter the most dangerous.
+- **Magic and specialties** (securing an advantage with its assets): its marked abilities that Secure an Advantage or Gain Ground (the system's links to those moves in their text), each ritual, and mystic powers (Ritualist, Kinetic, Sorcerer, Windbinder, Shapechanger, Necromancer, Firebrand, Seer, Sighted): two of them a little more often, four much more.
+- **Resources** (burning momentum): readily, with an ability marked that pays off when it burns momentum (Swordmaster, Veteran, Swashbuckler, Survivor, a Banner-Sworn in the fray); holding on to it, with one that needs momentum at its max (Kinetic, Demolitionist).
+- **Talking:** a Diplomat or Empath talks first; a Scoundrel, Trickster, Pretender, Socialite, Spy, Storyweaver or Leader when it could work; otherwise, marked abilities that Compel (one or two, when it could work; three, first).
+- **Healing others:** a Herbalist or Healer, or a marked ability that Heals (a Rider's is its horse's), keeps everyone up (unless the character would go further already).
+- **When an ally is dying:** healers, the Loyalist, the Bonded, a Banner-Sworn and a marked ability that aids an ally drop everything to save them.
+- **After I'm revived:** back into the fight for a Berserker, Revenant, Undead, Fated, Battle-Scarred or Augmented; a healer heals itself first.
+- **When to retreat:** never for a Berserker, Revenant or Undead; when the battle turns for a Mercenary, Fortune Hunter or Scoundrel; when badly hurt for a Fugitive.
+- **Others nearby:** a Slayer or Bounty Hunter hunts them down; a Commander, Crew Commander, Fleet Commander, Banner-Sworn or one with a Cohort runs for help.
+- **Consumables:** an Alchemist (elixirs) or Demolitionist (explosives) uses them freely.
+- **Offer and expect:** a Diplomat or Empath offers not to harm them; a Trader or Fortune Hunter offers a Supply (if it has any); a Fugitive offers to leave; a Mercenary or Pirate Captain expects a Supply; a Courier expects to be let through.
+
+**A foe**, from its nature, then its kind (by its id: what its drives and tactics say), each shown with its name:
+- Horrors and machines never break; beasts and animals stay with the fight; only people and the Firstborn talk.
+- Raiders talk first (to intimidate), never break, burn everything down (hunting whoever's near) and expect Supply; scrap bandits talk first, get out when it goes wrong and expect Supply; drift pirates and firestorm troopers go for the weakest and expect Supply. What a foe expects is half its rank in Supply, rounded up.
+- Common folk protect their own, rescue a friend, run for help and want not to be harmed; a warrior protects those in its charge; warriors and hunters live to fight another day; a zealot talks first and never breaks; the broken never talk and go for whoever's nearest.
+- A giant talks first, spares lives, offers peace and wants you gone; elves and the varou want you gone; trolls never talk and run when hurt; merrow and primordials never talk.
+- A wolf pack or howlcats go for the weakest and hunt; a cave lion and worldbreakers hunt; mammoths and sicklehorns protect their young and rescue them (mammoths to the death); a boar never breaks; a gaunt, a bear, gnawlings and water witchers flee when hurt; chitters and sky roosts call for help.
+- Bonewalkers, the risen, chimeras and bonehordes go for the nearest (bonewalkers and the risen hunt on); haunts, hollows and iron revenants rise again; a wight guards; a colossus ignores the small fry for the most dangerous; a servitor protects its people and weighs its odds; chiton never break and hunt; wardens never break.
+
+Ironsworn has no potions, no shields to raise and no signature attacks: those questions are always the core's.
 
 ## Rules preference
 

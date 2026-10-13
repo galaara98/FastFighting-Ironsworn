@@ -11,8 +11,11 @@ export const MODULE_ID = "fast-fighting-ironsworn";
 /** "Rules preference": follow the character sheets, or prefer one ruleset's moves when the names match. */
 const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 
-/** The core API this helper is written against (its system hooks for dice and moves of their own). */
-const NEEDS_API = 13;
+/**
+ * The core API this helper is written against (its system hooks for dice and moves of their own; its own answers to the
+ * tactics questions, with their reasons, and what a character offers and expects).
+ */
+const NEEDS_API = 14;
 
 /**
  * The last translation module we knew of for this game system, by language: in a language other than English, this
