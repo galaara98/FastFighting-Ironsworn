@@ -30,10 +30,9 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
   if ( ranged ) forms.push({ key: "range", stat: "edge", melee: false });
   for ( const f of forms ) {
     const reach = f.melee ? { melee: true, reach: 5, range: null } : { melee: false, range: { increment: 60, max: 120, noPenalty: true } };
-    const label = f.melee ? "" : t("AtRange");
     for ( const move of ["strike", "clash"] ) {
       out.push({
-        id: `${id}.${move}.${f.key}`, name: `${m[move].name}${label}`, kind: "strike", cost: 1, move, bonus: stats?.[f.stat] ?? 1, stat: f.stat, ...reach,
+        id: `${id}.${move}.${f.key}`, name: f.melee ? m[move].name : t("AtRange", { move: m[move].name }), kind: "strike", cost: 1, move, bonus: stats?.[f.stat] ?? 1, stat: f.stat, ...reach,
         // (A weapon's harm counts only where the move inflicts harm: Ironsworn's; Starforged's marks progress.)
         damage: [harm(m[move].weak + (m[move].harm ? extraHarm : 0))], critDamage: [harm(m[move].strong + (m[move].harm ? extraHarm : 0))], traits: [], weapon: true
       });

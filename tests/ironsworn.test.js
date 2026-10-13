@@ -157,6 +157,11 @@ describe("a fight", () => {
     const [classic] = characterMoves({ id: "y", stats: { iron: 2 } });
     expect(classic.damage[0].flat).toBe(1);
   });
+
+  test("at range, Strike and Clash are named as the language file says (the move's name in its words)", () => {
+    const names = characterMoves({ id: "x", stats: { iron: 1, edge: 2 }, ranged: true }).filter(a => a.kind === "strike" && !a.finish).map(a => a.name);
+    expect(names).toEqual([move("Strike"), move("Clash"), text("FFIRONSWORN.AtRange", { move: move("Strike") }), text("FFIRONSWORN.AtRange", { move: move("Clash") })]);
+  });
 });
 
 describe("rules preference: a move of the same name in another ruleset", () => {

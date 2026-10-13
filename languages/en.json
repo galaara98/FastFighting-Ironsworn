@@ -29,7 +29,7 @@
       }
     },
     "SecureAnAdvantage": "Secure an Advantage",
-    "AtRange": " (at range)",
+    "AtRange": "{move} (at range)",
     "Attack": "Attack",
     "MomentumChange": ", {n} momentum",
     "MoveRoll": "{move} (+{stat} {total} vs {dice}): {what}",
