@@ -113,6 +113,15 @@ const ASSET_TACTICS = Object.freeze({
 });
 
 /**
+ * Is it an asset for fighting at range (by its id: a bow, a sling, a rifle, pistols)? Not a Long-Arm's staff, a
+ * Skirmisher's spear or a Fletcher's arrows, made and not shot.
+ */
+export const rangedAsset = id => ASSET_TACTICS[assetLeanKey(id)]?.style === "ranged";
+
+/** Is it an asset that makes healing its owner's thing (a Herbalist, a Healer), not just the move anyone can make? */
+export const healerAsset = id => !!ASSET_TACTICS[assetLeanKey(id)]?.healAggro;
+
+/**
  * What a marked ability says (by the asset's key and the ability's number): burning momentum pays off for a
  * Swordmaster, a Veteran, a Swashbuckler, a Survivor, a Banner-Sworn in the fray (it burns it readily); a Kinetic's or a
  * Demolitionist's greatest feats need momentum at its max (it holds on to it).

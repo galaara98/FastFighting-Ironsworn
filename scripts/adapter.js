@@ -4,9 +4,10 @@
  *
  * A character: its stats, health and momentum (its reset and ceiling as its impacts leave them), a wound already
  * marked, who has the initiative if a fight is under way (Starforged's combat position), and whether it fights at
- * range (an asset like Archer or Gunner, or more edge than iron). Its moves: Strike and Clash (+iron close, +edge at
- * range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them; a move of the same name
- * in the ruleset the world prefers (the "Rules preference" setting, when that ruleset is on) is played that way.
+ * range (an asset like Archer or Gunner, by its id; or more edge than iron). Its moves: Strike and Clash (+iron close,
+ * +edge at range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them; a move of the
+ * same name in the ruleset the world prefers (the "Rules preference" setting, when that ruleset is on) is played that
+ * way. Heal, which anyone can make: a specialty only for one whose assets make healing its thing (a Herbalist, a Healer).
  * Its personality (traits.js), from everything on its sheet: its stats, assets, debilities or impacts, bonds or
  * connections, vows and legacies.
  * A foe: its progress track (its rank, and the ticks already marked) and what it is (its id: Ironlanders, Firstborn,
@@ -25,10 +26,8 @@ import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
-import { ironswornHints, ironswornTactics, abilityMoves, assetKey, plainText, characterBiography, foeBiography } from "./auto.js";
+import { ironswornHints, ironswornTactics, abilityMoves, assetKey, rangedAsset, healerAsset, plainText, characterBiography, foeBiography } from "./auto.js";
 
-/** Assets (and the like) for fighting at range. */
-const RANGED = /\b(?:archer|bow|crossbow|sling(?:er)?|javelin|gunner|gunslinger|sniper|sidearm|long-?arm|blaster|rifle|pistol|marksman|shooter|spear-?thrower)\b/i;
 /** The rulesets on in the world (the system's "ruleset-..." settings). */
 const RULESET_KEYS = ["classic", "starforged", "sundered_isles"];
 const enabledRulesets = () => RULESET_KEYS.filter(r => { try { return !!game.settings.get("foundry-ironsworn", `ruleset-${r}`); } catch { return false; } });
@@ -118,7 +117,9 @@ export class IronswornAdapter extends SystemAdapter {
     const preference = rulesPreference();
     const moveRules = movesFor(ruleset, preference === "sheet" ? ruleset : preference, enabledRulesets());
     const assets = actor.items.filter(i => i.type === "asset");
-    const ranged = assets.some(a => RANGED.test(a.name)) || stats.edge > stats.iron;
+    // (Its assets by the system's ids, as its tactics read them: a bow or a rifle to fight at range; a healer's path.)
+    const keys = assets.map(a => assetOf(a).key);
+    const ranged = keys.some(rangedAsset) || stats.edge > stats.iron;
     const health = Number(sys.health?.value ?? 5);
     const position = sys.combatPosition;
     const derived = deriveIronswornTraits(this.#traitFacts(actor, ruleset));
@@ -142,7 +143,7 @@ export class IronswornAdapter extends SystemAdapter {
       initiative: { mod: stats.wits, stealth: stats.shadow },
       speeds: { walk: 30 },
       // (Ironsworn: armed with a deadly weapon, 2 harm a hit; a world setting for tables where that isn't so.)
-      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, moves: moveRules, extraHarm: deadlyWeapons() ? 1 : 0, assets: assets.length > 0 }),
+      actions: characterMoves({ id: tokenDoc.id, stats, ruleset, ranged, moves: moveRules, extraHarm: deadlyWeapons() ? 1 : 0, assets: assets.length > 0, healer: keys.some(healerAsset) }),
       iwr: { immune: [], weak: {}, resist: {} },
       resources: { momentum: Number(sys.momentum?.value ?? 2) },
       momentumReset: Number(sys.momentumReset ?? sys.momentum?.resetValue ?? 2),
@@ -441,9 +442,13 @@ export class IronswornAdapter extends SystemAdapter {
     return commitEncounterTrack(spec.options?.system, replay);
   }
 
-  /** Ironsworn's words: no armor class; paying costs Supply. */
+  /**
+   * Ironsworn's words: no armor class; harm costs health (the system's word for it, else FastFighting's); paying costs
+   * Supply.
+   */
   term(key) {
     if ( key === "money" ) return game.i18n.localize("IRONSWORN.Supply");
+    if ( key === "hp" ) return systemWord("IRONSWORN.Health");
     return key === "ac" ? false : null;
   }
 

@@ -10,6 +10,7 @@ import { characterMoves, foeNumbers, advantageMoves, healMove } from "../scripts
 import { deriveIronswornTraits } from "../scripts/traits.js";
 import { replay } from "../../FastFighting/scripts/engine/simulator.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
+import { isSpecial } from "../../fast-fighting/scripts/engine/behavior/specialty.js";
 import { STATUS } from "../scripts/core.js";
 
 const traits = t => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { base: v, fudge: 0 }]));
@@ -68,6 +69,16 @@ describe("what a character can do", () => {
     const own = assets => characterMoves({ id: "me", stats: { edge: 2, iron: 1 }, assets }).find(a => a.move === "advantage" && a.targets === "self").special;
     expect(own(true)).toBe(true);
     expect(own(false)).toBe(false);
+  });
+
+  test("Heal is a move anyone can make: no specialty, and no one a healer for it; a Herbalist's or a Healer's is its own", () => {
+    const heal = healer => characterMoves({ id: "me", stats: { edge: 2, iron: 1, wits: 2 }, assets: true, healer }).find(a => a.move === "heal");
+    expect(heal(false).special).toBe(false);
+    expect(heal(undefined).special).toBe(false);
+    expect(healMove({ id: "me", stats: { wits: 2 } }).special).toBe(false);
+    expect(heal(true).special).toBe(true);
+    // (As the core reads it: a specialty or not by what the system says.)
+    expect([isSpecial(heal(false)), isSpecial(heal(true))]).toEqual([false, true]);
   });
 
   test("in a hurry, End the Fight two boxes sooner", () => {

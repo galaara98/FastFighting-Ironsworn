@@ -20,8 +20,10 @@ const harm = n => ({ dice: [], flat: n, type: "harm", persistent: false, categor
  * @param {object} [d.moves]          the moves it makes (movesFor: its ruleset's, with the world's preference)
  * @param {boolean} [d.assets]        it has assets (a companion, a path, a ritual): Securing an Advantage is how it
  *                                    brings them to bear, its specialty (what "magic and specialties" means here)
+ * @param {boolean} [d.healer]        its assets make healing its thing (a Herbalist, a Healer): its Heal is its
+ *                                    specialty too, not only the move anyone can make
  */
-export function characterMoves({ id, stats, ruleset = "classic", ranged = false, extraHarm = 0, moves = null, assets = false }) {
+export function characterMoves({ id, stats, ruleset = "classic", ranged = false, extraHarm = 0, moves = null, assets = false, healer = false }) {
   const m = moves ?? movesFor(ruleset);
   const out = [];
   const forms = [{ key: "close", stat: "iron", melee: true }];
@@ -42,18 +44,19 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
     melee: true, reach: 5, range: null, damage: [harm(1)], critDamage: [harm(1)], traits: []
   });
   out.push(...advantageMoves({ id, stats, moves: m }).map(a => (a.targets === "self" ? { ...a, special: !!assets } : a)));
-  out.push(healMove({ id, stats }));
+  out.push(healMove({ id, stats, healer }));
   return out;
 }
 
 /**
  * Heal (the game's own move; in a fight, for one in control): +wits, for a friend or itself (the books have it roll
  * the lower of wits and iron for its own wounds: here, wits either way). A hit gives +2 health (a weak hit costs a point
- * of momentum); a miss pays the price.
+ * of momentum); a miss pays the price. Anyone can make it, so it's no specialty (and makes no one a healer), unless its
+ * assets make healing its thing (`healer`).
  */
-export function healMove({ id, stats }) {
+export function healMove({ id, stats, healer = false }) {
   return {
-    id: `${id}.heal`, name: moveName("Heal"), kind: "heal", cost: 1, move: "heal", reach: 5, traits: [],
+    id: `${id}.heal`, name: moveName("Heal"), kind: "heal", cost: 1, move: "heal", reach: 5, traits: [], special: !!healer,
     heal: [{ dice: [], flat: 2, type: "healing", persistent: false, category: null }], healCheck: { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("Heal") }
   };
 }

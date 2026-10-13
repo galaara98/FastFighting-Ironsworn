@@ -22,7 +22,7 @@ https://github.com/galaara98/FastFighting-Ironsworn/releases/latest/download/mod
 ## What it reads
 
 - **Characters:** edge, heart, iron, shadow and wits; health, momentum (its reset and its ceiling, as impacts leave them); a wound already marked; and, in a fight already under way, who has the initiative (the sheet's combat position). A character's sheet says which rules it plays by: the Ironsworn sheet the classic moves, the Starforged sheet Starforged's.
-- **Fighting at range:** a character with an asset for it (Archer, Slinger, Gunner, Sniper, a sidearm ...), or more edge than iron, can Strike and Clash at a distance (+edge) as well as up close (+iron).
+- **Fighting at range:** a character with an asset for it, by its id (Archer, Slinger, Sniper, Gunner, Gunslinger, Musketeer, Pistoleer; not the Long-Arm's staff), or more edge than iron, can Strike and Clash at a distance (+edge) as well as up close (+iron).
 - **Foes:** the foe's progress track: its rank (troublesome to epic) and the ticks already marked on it. What it is comes from its id (Ironlanders, Firstborn, Animals, Beasts, Horrors, Anomalies; Starforged's foes as the book has each: human, creature, monster, machine, horror), else where its compendium files it, else its words: people and the Firstborn can be talked to; horrors and machines don't break; beasts fight on instinct.
 
 ## Personality
@@ -95,7 +95,7 @@ Every perk a playstyle (or a tactics answer) can switch on does something here. 
 
 Tactics answers:
 
-- **Magic and specialties** (an Un-Mundane character leans on them): a character with assets (a companion, a path, a ritual) brings them to bear by Securing an Advantage (Gain Ground), so that is its specialty; without assets, it has none. Strike, Clash, Compel, Aid Your Ally and Heal are what anyone could do.
+- **Magic and specialties** (an Un-Mundane character leans on them): a character with assets (a companion, a path, a ritual) brings them to bear by Securing an Advantage (Gain Ground), so that is its specialty; without assets, it has none. Strike, Clash, Compel, Aid Your Ally and Heal are what anyone could do, so Heal alone makes no one a healer (an Enabler or Moralist); for a Herbalist or a Healer (by the asset's id), healing is its thing, and Heal its specialty too.
 - **Resources** (conserve, balanced, nova): how readily it burns momentum. Conserving, it burns it only to turn a miss into a hit that matters, never a weak hit into a strong one. All out, it burns it to turn any miss into a hit, and a weak hit into a strong one with 4 or more.
 
 **Homebrew** (the books leave these to the table; this module's reading, kept to the game's own moves):

@@ -1,7 +1,7 @@
 /** Setting a character up by itself, as Ironsworn reads it: a character's assets by the system's ids, a foe's nature. */
 import { describe, expect, test } from "vitest";
 import { createHash } from "crypto";
-import { ironswornHints, ironswornTactics, abilityMoves, assetKey, MOVE_LINKS } from "../scripts/auto.js";
+import { ironswornHints, ironswornTactics, abilityMoves, assetKey, rangedAsset, healerAsset, MOVE_LINKS } from "../scripts/auto.js";
 import { IronswornAdapter } from "../scripts/adapter.js";
 import { TACTIC_CHOICES, TACTIC_KEYS } from "../../FastFighting/scripts/engine/tactics.js";
 import { withHints } from "../../FastFighting/scripts/foundry/auto-config.js";
@@ -175,6 +175,27 @@ describe("a character's answers, from its sheet", () => {
   });
 });
 
+describe("what its assets make of its moves, by their ids", () => {
+  /** Which of these ids it says yes to. */
+  const yes = (is, ids) => ids.filter(id => is(id));
+
+  test("fighting at range: a bow, a sling, a rifle, pistols, in every ruleset (or by its older id); not a staff, a spear or arrows made", () => {
+    const ranged = ["asset:classic/combat_talent/archer", "asset:classic/combat_talent/slinger", "asset:starforged/path/archer", "asset:starforged/path/sniper",
+      "asset:starforged/path/gunner", "asset:starforged/path/gunslinger", "asset:sundered_isles/path/musketeer", "asset:sundered_isles/path/pistoleer",
+      "Ironsworn/Assets/Combat_Talent/Archer"];
+    expect(yes(rangedAsset, ranged)).toEqual(ranged);
+    expect(yes(rangedAsset, ["asset:classic/combat_talent/long_arm", "asset:classic/combat_talent/skirmisher", "asset:classic/combat_talent/fletcher",
+      "asset:classic/combat_talent/swordmaster", "asset:sundered_isles/path/harpooner", "asset:starforged/module/heavy_cannons", "", null])).toEqual([]);
+  });
+
+  test("healing its thing: Ironsworn's Herbalist, Starforged's Healer; not a Rider (its horse's), nor a ship's medbay", () => {
+    const healers = ["asset:classic/path/herbalist", "asset:starforged/path/healer", "Ironsworn/Assets/Path/Herbalist"];
+    expect(yes(healerAsset, healers)).toEqual(healers);
+    expect(yes(healerAsset, ["asset:classic/path/rider", "asset:starforged/module/medbay", "asset:sundered_isles/module/improved_sick_bay",
+      "asset:classic/path/loyalist", "", null])).toEqual([]);
+  });
+});
+
 describe("a foe's answers, from what it is", () => {
   test("a raider intimidates first, takes Supply (as much as its rank says), never breaks and burns it all down", () => {
     const raider = foe("npc:classic/ironlanders/raider", "people", "Raider");
@@ -243,6 +264,8 @@ describe("read from the sheets, as the adapter does", () => {
     }
     expect(values(out)).toEqual({ style: "frontline", resourceUse: "nova", healAggro: "aggressive", allyDying: "rescue", selfRevived: "healSelf" });
     expect(out.resourceUse.why).toBe("Swordmaster");
+    // (Each with its reason.)
+    expect(Object.entries(out).filter(([, { why }]) => !(typeof why === "string" && why))).toEqual([]);
     // (The Hound's one ability that secures an advantage isn't enough to lean on.)
     expect(out.specialty).toBeUndefined();
   });
@@ -253,6 +276,39 @@ describe("read from the sheets, as the adapter does", () => {
     expect(values(adapter.tacticHints(foeActor("npc:classic/animals/wolf", "Wolf", 2), { nature: "animal" }, {})))
       .toEqual({ beyond: "hunt", talk: "never", target: "weakest" });
   });
+
+  /** A character's spec, as the adapter builds it for a token of it. */
+  const specOf = async actor => {
+    globalThis.foundry = { utils: { getProperty: (o, path) => path.split(".").reduce((v, k) => v?.[k], o) } };
+    try {
+      return await adapter.toCombatantSpec({ id: "token", name: actor.name, actor });
+    } finally {
+      delete globalThis.foundry;
+    }
+  };
+  /** Brand with other assets: [id, name] each. */
+  const carrying = (...assets) => ({ ...brand, items: items(assets.map(([dsid, name]) => ({ type: "asset", name, flags: flags(dsid), system: { abilities: [] } }))) });
+
+  test("its moves: Heal, anyone's to make, is a Herbalist's specialty; a bow fights at range, whatever it's called, a staff doesn't", async () => {
+    const heal = spec => spec.actions.find(a => a.move === "heal").special;
+    expect(heal(await specOf(brand))).toBe(true);
+    expect(heal(await specOf(carrying(["asset:classic/path/rider", "Rider"])))).toBe(false);
+    // (Brand's edge is less than its iron: only an asset puts it at range.)
+    const atRange = async (...assets) => (await specOf(carrying(...assets))).actions.filter(a => a.melee === false).map(a => a.move);
+    expect(await atRange(["asset:classic/combat_talent/archer", "Bogenschütze"])).toEqual(["strike", "clash"]);
+    expect(await atRange(["asset:classic/combat_talent/long_arm", "Long-Arm"])).toEqual([]);
+    expect(await atRange()).toEqual([]);
+  });
+
+  test("its words: the system's for health and Supply, in the reader's language; no armor class", () => {
+    const system = { "IRONSWORN.Health": "Leben", "IRONSWORN.Supply": "Vorrat" };
+    const own = game.i18n;
+    game.i18n = { ...own, has: k => k in system || own.has(k), localize: k => system[k] ?? own.localize(k) };
+    expect([adapter.term("hp"), adapter.term("money"), adapter.term("ac"), adapter.term("sp")]).toEqual(["Leben", "Vorrat", false, null]);
+    // (A system without the word: FastFighting's own.)
+    game.i18n = own;
+    expect(adapter.term("hp")).toBeNull();
+  });
 });
 
 describe("every answer is one of its question's choices", () => {
@@ -261,12 +317,16 @@ describe("every answer is one of its question's choices", () => {
       .map(k => asset(`asset:classic/path/${k}`, k, [[true, "advantage", "compel", "heal", "aid"], [true, "advantage"], [true, "compel"]])),
     ["swordmaster", "kinetic", "mercenary", "courier", "cutthroat", "commander", "scoundrel", "loyalist", "demolitionist", "veteran"]
       .map(k => asset(`asset:starforged/path/${k}`, k, [[true], [true], [true]]))
-  ].flatMap(list => list.map(a => pc([a])).concat([pc(list)]));
+  ].flatMap(list => list.map(a => pc([a])).concat([pc(list)]))
+    // (No assets: its stats alone.)
+    .concat([pc([], { stats: { edge: 1, iron: 3 } }), pc([], { stats: { edge: 3, iron: 1 } })]);
   const foes = [
     ["npc:classic/ironlanders/raider", "people"], ["npc:classic/ironlanders/common_folk", "people"], ["npc:classic/firstborn/giant", "firstborn"],
     ["npc:classic/firstborn/troll", "firstborn"], ["npc:classic/animals/wolf", "animal"], ["npc:classic/beasts/mammoth", "beast"],
     ["npc:classic/horrors/iron_revenant", "horror"], ["npc:starforged/sample_npcs/scrap_bandit", "people"], ["npc:starforged/sample_npcs/colossus", "machine"]
-  ].map(([dsid, nature]) => foe(dsid, nature, dsid.split("/").pop(), 3));
+  ].map(([dsid, nature]) => foe(dsid, nature, dsid.split("/").pop(), 3))
+    // (Nothing known of its kind, nor a name: its nature alone.)
+    .concat(["horror", "machine", "beast"].map(nature => ironswornTactics({ pc: false, nature })));
 
   test("each answer a choice (offer and expect as the survey stores them), with a reason; the core takes them all", () => {
     for ( const out of [...characters, ...foes] ) {
