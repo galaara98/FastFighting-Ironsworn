@@ -4,7 +4,7 @@
 > - **Programming:** I am a skilled programmer by profession, but AI was used heavily as a co-pilot.
 > - **Strings:** ALL initial strings were created by AI. An AI-made Spanish translation was used to test localization and has since been removed.
 
-Ironsworn and Starforged support for [FastFighting Core](https://github.com/galaara98/FastFighting), the Foundry VTT module that simulates a fight (or a tense standoff) thousands of times, tells the story of one fair draw, and commits it to the tokens with **Make it So**.
+Ironsworn and Starforged support for [FastFighting Core](https://github.com/galaara98/FastFighting), the Foundry VTT module that simulates a fight (or a tense standoff) thousands of times, tells the story of one fair draw, and commits it to the tokens with **Do it For Real Now**.
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
@@ -47,9 +47,9 @@ As the game plays it, success is progress on a track, and things going wrong cos
   - **One for the encounter** (Starforged's objective; the default where anyone plays Starforged or Sundered Isles): every foe is part of one track. Every Strike and Clash marks progress on it, at the encounter's rank, whichever foe it's aimed at, and every success in words marks it too (a strong hit twice). Fill it and the foes are beaten together; Take Decisive Action, once it's well along (seven boxes), is a progress roll against it: a hit achieves the objective, a miss loses it, and the fight with it.
   - **Each foe's own** (Ironsworn's, the default otherwise): harm marks progress on each foe's own track, at its own rank, and End the Fight takes that foe out of it.
 - **Rank** (one track): Troublesome to Epic, how hard the objective is: how much each mark fills (troublesome 3 boxes, dangerous 2, formidable 1, extreme 2 ticks, epic 1), and how many successes it takes to talk a foe round (2, 3, 6, 12, 24). By default, its most dangerous foe's.
-- **Kept on** (one track): the character whose sheet keeps the track (the party's leader by default); the others can follow it by hand. Make it So writes it there: the track it keeps for this scene's encounters, else a new one named for the scene, completed when the objective is achieved.
+- **Kept on** (one track): the character whose sheet keeps the track (the party's leader by default); the others can follow it by hand. Do it For Real Now writes it there: the track it keeps for this scene's encounters, else a new one named for the scene, completed when the objective is achieved.
 
-Either way, a foe's own rank says how hard it hits back, and a foe whose track is full is **beaten**: out of the fight, and the players decide what that means (killed, out of action, fled, surrendered). A Cruel character kills a foe it beats, and the story says so (Make it So marks it dead; a beaten foe is only marked defeated).
+Either way, a foe's own rank says how hard it hits back, and a foe whose track is full is **beaten**: out of the fight, and the players decide what that means (killed, out of action, fled, surrendered). A Cruel character kills a foe it beats, and the story says so (Do it For Real Now marks it dead; a beaten foe is only marked defeated).
 
 **Going wrong:** an ally going down weighs on the characters beside it (Endure Stress, 1; 2 when it's killed).
 
@@ -153,14 +153,14 @@ With more than one ruleset on in the world, Ironsworn, Starforged and Sundered I
 - **Follow character sheets** (the default): every character makes the moves of the sheet it's on now, the token's own choice of sheet over its actor's (an Ironsworn sheet's; a Starforged sheet's, or Sundered Isles' in a world with that on and not Starforged), even where that sheet shows other rulesets' moves too. A sheet that's neither (the compact sheet) goes by the rulesets the world has on, Ironsworn first.
 - **Prefer Ironsworn**, **Prefer Starforged**, **Prefer Sundered Isles**: where that ruleset has a move of the same name (and the world has it on), every character makes that ruleset's version. Of the combat moves, Sundered Isles has its own Enter the Fray. Moves called differently stay the character's own (End the Fight, Take Decisive Action), and so do the words for who has the upper hand (the initiative, in control). A deadly weapon's harm counts only on Ironsworn's Strike and Clash; Starforged's mark progress.
 
-## Make it So
+## Do it For Real Now
 
 - A character: health, spirit, momentum, a wound or shaken marked, and how it ended (out cold, dying, dead, or deathbound after Face Death).
 - One track for the encounter: its progress, on the sheet of the character who keeps it (completed when the objective is achieved); the foes' own tracks are left as they were.
 - A foe: progress marked on its track, the track completed when it was beaten (and its token marked defeated); a foe that fled is hidden.
 - Supply paid: lowered for every character on the payer's side, and (with the system's Shared Supply Tracker on, as it is by default) every character and starship it shares Supply with. Ground given: a mark of progress on the foe's track.
 
-Undo puts it all back.
+Rewind This Encounter puts it all back.
 
 ## Development
 
