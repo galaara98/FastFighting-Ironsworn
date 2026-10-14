@@ -23,7 +23,8 @@ import { loreBoost } from "./lore.js";
 import { movesFor } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
-import { commitIronswornOutcome, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
+import { commitIronswornOutcome, commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
+import { readIronswornTurn } from "./read-turn.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
 import { ironswornHints, ironswornTactics, abilityMoves, assetKey, rangedAsset, healerAsset, plainText, characterBiography, foeBiography } from "./auto.js";
@@ -440,6 +441,30 @@ export class IronswornAdapter extends SystemAdapter {
   /** The encounter's track, written on the character who keeps it. */
   async commitEncounter(spec, replay, options) {
     return commitEncounterTrack(spec.options?.system, replay);
+  }
+
+  get supportsLive() {
+    return true;
+  }
+
+  /** No initiative: the GM gives the spotlight to the character who acts. */
+  get liveTurns() {
+    return "spotlight";
+  }
+
+  /** A live battle: one turn's changes (commit.js commitIronswornChanges). */
+  async commitChanges(tokenDoc, spec, changes, final, options) {
+    return commitIronswornChanges(tokenDoc, spec, changes, final, options);
+  }
+
+  /** A live turn's progress on the encounter's track (one track for the encounter). */
+  async commitTurn(before, after, options = {}) {
+    return commitEncounterTurn(options.spec?.options?.system, before, after, options.events ?? []);
+  }
+
+  /** A character's spotlight, read from the ironsworn system's move cards (read-turn.js). */
+  readTurn(messages, context) {
+    return readIronswornTurn(messages, context);
   }
 
   /**

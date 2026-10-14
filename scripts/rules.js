@@ -518,6 +518,22 @@ export const ironswornRules = {
   },
 
   /** What Make it So needs beyond the core's: momentum, a wound, who has the initiative, Face Death. */
+  /**
+   * A live battle's next spotlight (no initiative: the GM gives it): the next character able to act, in turn after the
+   * last to have it. Foes never take one of their own (they answer the characters' moves), unless no character can act.
+   */
+  nextSpotlight(run, { last = null, up = {} } = {}) {
+    const order = run.order;
+    const able = u => u.active && u.status === STATUS.STANDING;
+    const movers = order.filter(u => isMover(u) && able(u));
+    const list = movers.length ? movers : order.filter(able);
+    if ( !list.length ) return null;
+    const lastMover = order.filter(isMover).reduce((best, u) => ((up[u.id] ?? -1) > (best ? up[best.id] ?? -1 : -1) ? u : best), null);
+    const from = movers.length ? lastMover : last;
+    const at = from ? order.indexOf(from) : -1;
+    return list.find(u => order.indexOf(u) > at) ?? list[0];
+  },
+
   capture(u) {
     return {
       spirit: isMover(u) ? u.spirit ?? null : null,

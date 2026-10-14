@@ -140,6 +140,107 @@ export async function commitEncounterTrack(plan, replay) {
   return [undo];
 }
 
+/**
+ * A live turn's progress on the encounter's track (one track for the encounter), written on the character who keeps
+ * it: what the fight marked this turn, and what a strong talk did; completed when the objective was achieved. Returns
+ * undo records.
+ */
+export async function commitEncounterTurn(plan, before, after, events = []) {
+  if ( plan?.mode !== "encounter" || !plan.holderTokenId ) return [];
+  const left = units => {
+    const foes = (plan.foeIds ?? []).map(id => units?.[id]).filter(Boolean);
+    return foes.length ? Math.min(...foes.map(f => Math.max(0, f.hp ?? TRACK))) : null;
+  };
+  const was = left(before);
+  const now = left(after);
+  const fought = was !== null && now !== null ? Math.max(0, was - now) : 0;
+  const onTrack = new Set(plan.foeIds ?? []);
+  const rank = [...events].reverse().find(e => e.trackRank)?.trackRank ?? plan.rank;
+  const marks = events.filter(e => e.type === "talk" && e.degree >= 2 && onTrack.has(e.targetId) && e.side === plan.friendly)
+    .reduce((s, e) => s + (e.degree === 3 ? 2 : 1), 0);
+  const talked = marks * (TICKS[rank] ?? 0);
+  const end = events.find(e => e.type === "end");
+  const lost = end?.resolved === "objectiveLost";
+  const achieved = !lost && ((now !== null && now <= 0) || (!!end && (end.winners ?? []).includes(plan.friendly)));
+  if ( !fought && !talked && !achieved ) return [];
+  const tokenDoc = canvas.scene?.tokens.get(plan.holderTokenId);
+  const actor = tokenDoc?.actor;
+  if ( !actor ) return [];
+  const undo = emptyRecord(tokenDoc, actor);
+  const existing = (plan.trackId ? actor.items.get(plan.trackId) : null) ?? encounterTrack(actor, canvas.scene?.id);
+  if ( existing ) {
+    const current = Number(existing.system.current) || 0;
+    undo.itemUpdates.push({ id: existing.id, update: { "system.current": current, "system.rank": existing.system.rank, "system.completed": !!existing.system.completed } });
+    await existing.update({ "system.current": Math.min(TRACK, current + fought + talked), "system.rank": rank, "system.completed": achieved || !!existing.system.completed });
+  } else {
+    const [item] = await actor.createEmbeddedDocuments("Item", [{
+      type: "progress",
+      name: t("Conflict.TrackName", { scene: canvas.scene?.name ?? "" }),
+      system: { subtype: "progress", rank, current: Math.min(TRACK, (plan.before ?? 0) + fought + talked), completed: achieved, hasTrack: true },
+      flags: { [MODULE]: { encounter: canvas.scene?.id ?? null } }
+    }]);
+    if ( item ) undo.createdItems.push(item.id);
+  }
+  return [undo];
+}
+
+/**
+ * A live battle: one turn's changes (the core's engine/changes.js) written onto a token. A character: health, and
+ * spirit, momentum, a wound, shaken as the turn moved them (options.before); out cold, dead. A foe: the progress marked
+ * on its track this turn, the track completed when it was beaten, its token defeated.
+ * @returns {Promise<object>} an undo record (as commitIronswornOutcome's)
+ */
+export async function commitIronswornChanges(tokenDoc, spec, changes, final, options = {}) {
+  const actor = tokenDoc.actor;
+  const undo = emptyRecord(tokenDoc, actor);
+  const s = final.system ?? {};
+  const was = options.before?.system ?? {};
+  if ( spec.mover ) {
+    const update = {};
+    const set = (path, value) => {
+      const before = foundry.utils.getProperty(actor, path);
+      if ( before === value ) return;
+      update[path] = value;
+      undo.actorUpdate[path] = before ?? 0;
+    };
+    if ( changes.hp ) set("system.health.value", Math.max(0, changes.hp.to ?? 0));
+    if ( Number.isFinite(s.spirit) && s.spirit !== was.spirit ) set(meterPath(actor, "spirit"), Math.max(0, s.spirit));
+    if ( Number.isFinite(s.momentum) && s.momentum !== was.momentum ) set("system.momentum.value", s.momentum);
+    if ( s.wounded && !was.wounded ) set("system.debility.wounded", true);
+    if ( s.shaken && !was.shaken ) set("system.debility.shaken", true);
+    if ( changes.died ) await setStatus(actor, "dead", true, undo, { overlay: true });
+    else if ( changes.fell ) await setStatus(actor, "unconscious", true, undo);
+    if ( changes.revived ) await setStatus(actor, "unconscious", false, undo);
+    if ( Object.keys(update).length ) await actor.update(update);
+    return undo;
+  }
+  // A foe: the progress marked on its track this turn. (On one track for the encounter: commitEncounterTurn.)
+  const beaten = changes.died || changes.status?.to === STATUS.BEATEN;
+  const track = spec.sharedHp ? null : actor.items.get(spec.progressItemId);
+  if ( track ) {
+    const change = {};
+    const current = Number(track.system.current) || 0;
+    if ( changes.hp && ticks(changes.hp.to) > current ) change["system.current"] = ticks(changes.hp.to);
+    if ( beaten && !track.system.completed ) change["system.completed"] = true;
+    if ( Object.keys(change).length ) {
+      undo.itemUpdates.push({ id: track.id, update: { "system.current": current, "system.completed": !!track.system.completed } });
+      await track.update(change);
+    }
+  }
+  if ( beaten ) {
+    if ( changes.died ) await setStatus(actor, "dead", true, undo, { overlay: true });
+    const combatant = game.combat?.getCombatantsByToken?.(tokenDoc)?.[0];
+    if ( combatant && !combatant.defeated ) {
+      await combatant.update({ defeated: true });
+      undo.combatant = { uuid: combatant.uuid, defeated: false };
+    }
+  } else if ( changes.status?.to === STATUS.FLED && options.fledMode !== "leave" ) {
+    undo.tokenUpdate = { hidden: tokenDoc.hidden };
+    await tokenDoc.update({ hidden: true });
+  }
+  return undo;
+}
+
 /** Human-readable list of what will change, for the confirmation dialog. */
 export function describeIronswornOutcome(spec, final) {
   const lines = [];
