@@ -34,7 +34,9 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
       out.push({
         id: `${id}.${move}.${f.key}`, name: f.melee ? m[move].name : t("AtRange", { move: m[move].name }), kind: "strike", cost: 1, move, bonus: stats?.[f.stat] ?? 1, stat: f.stat, ...reach,
         // (A weapon's harm counts only where the move inflicts harm: Ironsworn's; Starforged's marks progress.)
-        damage: [harm(m[move].weak + (m[move].harm ? extraHarm : 0))], critDamage: [harm(m[move].strong + (m[move].harm ? extraHarm : 0))], traits: [], weapon: true
+        damage: [harm(m[move].weak + (m[move].harm ? extraHarm : 0))], critDamage: [harm(m[move].strong + (m[move].harm ? extraHarm : 0))], traits: [], weapon: true,
+        // (A move, not a bow: "Vex's Strike (at range) lands", not "Vex's Strike (at range) shot".)
+        launched: false
       });
     }
   }

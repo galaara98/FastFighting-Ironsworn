@@ -20,7 +20,7 @@ import { SystemAdapter, hasWords, localize } from "./core.js";
 import { ironswornRules } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp } from "./build.js";
 import { loreBoost } from "./lore.js";
-import { movesFor } from "./moves.js";
+import { movesFor, TRACK } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornOutcome, commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
@@ -445,6 +445,23 @@ export class IronswornAdapter extends SystemAdapter {
 
   get supportsLive() {
     return true;
+  }
+
+  /**
+   * A token's sheet mid-fight. A foe on the encounter's one track: its hit points are the ticks left on that track (on
+   * the character who keeps it, as the table marks it), not on a track of its own.
+   */
+  async readLiveState(tokenDoc, { spec = null } = {}) {
+    const state = await super.readLiveState(tokenDoc);
+    const plan = spec?.options?.system;
+    if ( !state || plan?.mode !== "encounter" || !(plan.foeIds ?? []).includes(tokenDoc.id) ) return state;
+    const holder = plan.holderTokenId ? tokenDoc.parent?.tokens.get(plan.holderTokenId)?.actor : null;
+    const track = holder ? ((plan.trackId ? holder.items.get(plan.trackId) : null) ?? encounterTrack(holder, tokenDoc.parent?.id)) : null;
+    const marked = Math.max(0, Math.min(TRACK, track ? Number(track.system.current) || 0 : Number(plan.before) || 0));
+    state.hp = TRACK - marked;
+    state.maxHp = TRACK;
+    if ( state.status !== "dead" ) state.status = state.hp > 0 ? "standing" : "down";
+    return state;
   }
 
   /** No initiative: the GM gives the spotlight to the character who acts. */

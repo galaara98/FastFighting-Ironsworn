@@ -170,8 +170,15 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
   const existing = (plan.trackId ? actor.items.get(plan.trackId) : null) ?? encounterTrack(actor, canvas.scene?.id);
   if ( existing ) {
     const current = Number(existing.system.current) || 0;
-    undo.itemUpdates.push({ id: existing.id, update: { "system.current": current, "system.rank": existing.system.rank, "system.completed": !!existing.system.completed } });
-    await existing.update({ "system.current": Math.min(TRACK, current + fought + talked), "system.rank": rank, "system.completed": achieved || !!existing.system.completed });
+    // (Only what changed: the system tells the table of every change, "rank changed from Dangerous to Dangerous" too.)
+    const change = {};
+    const was = {};
+    const next = { "system.current": Math.min(TRACK, current + fought + talked), "system.rank": rank, "system.completed": achieved || !!existing.system.completed };
+    const had = { "system.current": current, "system.rank": existing.system.rank, "system.completed": !!existing.system.completed };
+    for ( const [k, v] of Object.entries(next) ) if ( v !== had[k] ) { change[k] = v; was[k] = had[k]; }
+    if ( !Object.keys(change).length ) return [];
+    undo.itemUpdates.push({ id: existing.id, update: was });
+    await existing.update(change);
   } else {
     const [item] = await actor.createEmbeddedDocuments("Item", [{
       type: "progress",
