@@ -49,6 +49,12 @@ describe("a spotlight read from the ironsworn system's move cards", () => {
     expect(events.every(e => e.sure === false)).toBe(true);
   });
 
+  test("a card as Foundry stores it (the attribute in double quotes, the JSON spread over lines) reads the same", () => {
+    const json = JSON.stringify({ preRollOptions: { actorId: "actKara", moveDsId: "move:starforged/combat/strike", stat: { source: "iron", value: 2 } }, postRollOptions: {}, rawActionDieValue: 6, rawChallengeDiceValues: [1, 4] }, null, 2);
+    const stored = { speaker: { actor: "actKara", token: null }, content: `<article class="ironsworn-roll flexcol" data-ironswornroll="${json.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"><h3>Strike</h3></article>` };
+    expect(readIronswornTurn([stored], context)).toEqual([expect.objectContaining({ type: "attack", degree: 3, aimless: true })]);
+  });
+
   test("another character's cards, and cards that aren't moves, are left out", () => {
     expect(readIronswornTurn([card({ actorId: "actVex" }), { speaker: { actor: "actKara" }, content: "<p>Hello</p>" }], context)).toEqual([]);
   });

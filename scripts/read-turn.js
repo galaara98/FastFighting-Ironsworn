@@ -24,12 +24,14 @@ const MOVES = {
 const unescape = s => s.replace(/&quot;/g, "\"").replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&#x60;/g, "`").replace(/&#x3D;/g, "=")
   .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 
-/** The roll a move card keeps, or null. */
+/**
+ * The roll a move card keeps, or null. (The template quotes the attribute with ' ; a card as Foundry stores it, with ".)
+ */
 export function rollOf(m) {
-  const found = /data-ironswornroll='([^']*)'/.exec(String(m.content ?? ""));
+  const found = /data-ironswornroll=(?:'([^']*)'|"([^"]*)")/.exec(String(m.content ?? ""));
   if ( !found ) return null;
   try {
-    return JSON.parse(unescape(found[1]));
+    return JSON.parse(unescape(found[1] ?? found[2]));
   } catch ( err ) {
     return null;
   }
