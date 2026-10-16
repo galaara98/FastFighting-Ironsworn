@@ -15,7 +15,7 @@ const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
  * The core API this helper is written against (its system hooks for dice and moves of their own; its own answers to the
  * tactics questions, with their reasons, and what a character offers and expects).
  */
-const NEEDS_API = 15;
+const NEEDS_API = 16;
 
 /**
  * The last translation module we knew of for this game system, by language: in a language other than English, this
