@@ -499,7 +499,8 @@ export class IronswornAdapter extends SystemAdapter {
   conditionChoices() {
     const on = enabledRulesets().map(r => (r === "classic" ? "classic" : "starforged"));
     const own = [...new Set((on.length ? on : Object.keys(DEBILITIES)).flatMap(r => DEBILITIES[r]))];
-    return [...own.map(key => ({ key })), ...super.conditionChoices()];
+    // (One the core has too, cursed or doomed: the system's, whichever ruleset has it.)
+    return [...own.map(key => ({ key })), ...super.conditionChoices().filter(c => !DEBILITY_KEYS.includes(c.key))];
   }
 
   /** A live battle: one turn's changes (commit.js commitIronswornChanges). */

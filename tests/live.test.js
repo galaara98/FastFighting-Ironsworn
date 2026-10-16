@@ -146,7 +146,7 @@ describe("debilities and impacts: conditions the GM puts on, kept on the sheet",
     expect(Object.keys(state.conditions).sort()).toEqual([...DEBILITY_KEYS].sort());
     expect(state.carries).toBeUndefined(); // (the core asks sheetCarries)
     for ( const key of DEBILITY_KEYS ) expect(adapter.sheetCarries(key)).toBe(true);
-    for ( const { key } of CORE_CONDITIONS ) expect(adapter.sheetCarries(key)).toBe(false);
+    for ( const { key } of CORE_CONDITIONS ) if ( !DEBILITY_KEYS.includes(key) ) expect(adapter.sheetCarries(key)).toBe(false);
     // (What it offers of its own, it carries.)
     expect(adapter.conditionChoices().filter(c => adapter.sheetCarries(c.key)).map(c => c.key).sort()).toEqual([...DEBILITY_KEYS].sort());
     // A foe has no debilities: whatever the GM puts on one, FastFighting keeps.
@@ -166,7 +166,7 @@ describe("debilities and impacts: conditions the GM puts on, kept on the sheet",
     expect(["wounded", "maimed", "doomed", "frightened"].map(k => adapter.conditionLabel(k))).toEqual(["Verletzt", "Verstümmelt", null, null]);
     // (No ruleset known: every one.)
     const keys = () => adapter.conditionChoices().map(c => c.key);
-    expect(keys()).toEqual([...DEBILITY_KEYS, ...CORE_CONDITIONS.map(c => c.key)]);
+    expect(keys()).toEqual([...DEBILITY_KEYS, ...CORE_CONDITIONS.map(c => c.key).filter(k => !DEBILITY_KEYS.includes(k))]);
     // A world that plays Ironsworn alone: its debilities, in their words.
     game.settings = { get: (id, key) => key === "ruleset-classic" };
     expect(keys().filter(k => adapter.sheetCarries(k))).toEqual(DEBILITIES.classic);

@@ -156,6 +156,21 @@ export const ironswornRules = {
   },
   /** A point on an action roll (a d6 against two d10s) moves far more than one on a d20: about a quarter more hits. */
   rollPoint: 0.25,
+  /**
+   * Its debilities and impacts are its own (cursed, doomed and encumbered among them, which the core has too): they
+   * mean what the rules make of them, none of the core's bonuses and penalties.
+   */
+  ownConditions: DEBILITY_KEYS,
+  /** What a condition harms each turn (a fire, radiation, a gullet's acid): a point of harm, whatever it is. */
+  conditionHarm() {
+    return harm(1);
+  },
+  /** A fall: a point of harm for each 10 feet, 3 at most; there's no lying prone. */
+  fallDamage(feet) {
+    const n = Math.min(3, Math.floor((Number(feet) || 0) / 10));
+    return n > 0 ? harm(n) : [];
+  },
+  fallProne: false,
   minimumDamage: 0,
   /**
    * The few saves there are (a foe's attack on a companion): a strong hit avoids it. Facing a hazard's danger: any hit
