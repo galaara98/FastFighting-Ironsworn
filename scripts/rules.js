@@ -31,7 +31,7 @@
  * hazard makes those it reaches Face Danger (+edge). One in a hurry takes End the Fight on sooner; how freely a
  * character uses resources says how readily it burns momentum.
  */
-import { DOWNED_MODELS, STATUS, localize, behaviorOf, applyOutcome, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
+import { DOWNED_MODELS, STATUS, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
 import { movesFor, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
 import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS } from "./conflict.js";
 import { t, statName, moveName } from "./words.js";
@@ -51,6 +51,45 @@ function actionRoll(rng, mod, { adds = 0, progress = false } = {}) {
   const score = progress ? clamp(mod, 0, 10) : Math.min(10, die + mod + adds);
   const challenge = [rng.die(10), rng.die(10)];
   return { natural: die, total: score, challenge, match: challenge[0] === challenge[1], degree: grade(score, challenge) };
+}
+
+/**
+ * The debilities (Ironsworn) and impacts (Starforged; Sundered Isles has Starforged's) a character's sheet marks, as the
+ * engine's conditions: each by the system's own id for it (system.debility.<id>), on or off. The rules play wounded and
+ * shaken (Endure Harm, Endure Stress); the system counts every one against the sheet's momentum.
+ */
+export const DEBILITIES = Object.freeze({
+  classic: Object.freeze(["wounded", "shaken", "unprepared", "encumbered", "maimed", "corrupted", "cursed", "tormented"]),
+  starforged: Object.freeze(["wounded", "shaken", "unprepared", "permanentlyharmed", "traumatized", "doomed", "tormented", "indebted", "battered", "cursed"])
+});
+/** Every one, whichever ruleset's sheet marks it. */
+export const DEBILITY_KEYS = Object.freeze([...new Set(Object.values(DEBILITIES).flat())]);
+
+/** The debilities the rules play. */
+const PLAYED = ["wounded", "shaken"];
+
+/**
+ * A character's wounded or shaken (u.wounded, u.shaken), as the rules read and mark it, is its condition of that key:
+ * the sheet's, the GM's (the Battle Interface) and the fight's own alike. Marking it marks the condition (and so the
+ * sheet, once the turn is written); the GM or the sheet taking the condition off takes it off for the rules too.
+ */
+function playedAsCondition(u, key) {
+  Object.defineProperty(u, key, {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return (Number(this.conds?.[key]) || 0) > 0;
+    },
+    set(on) {
+      if ( !!on === this[key] ) return;
+      if ( !on ) {
+        dropCondition(this, key);
+        return;
+      }
+      (this.baseConds ??= {})[key] = 1;
+      (this.conds ??= {})[key] = 1;
+    }
+  });
 }
 
 const momentumOf = u => u.resources?.momentum ?? 0;
@@ -83,13 +122,18 @@ export const ironswornRules = {
   door: { ac: 10, hp: 12, threshold: 0, forceDC: 10, pickDC: 10 },
   doorCosts: { open: {}, force: { action: 1 }, pick: { action: 1 } },
 
-  /** A character's own state for the fight: a wound already marked, its momentum's ceiling, the initiative if a fight is under way. */
+  /**
+   * A character's own state for the fight: a wound or shaken already marked (its conditions, as its sheet gives them;
+   * or its spec says so), its momentum's ceiling, the initiative if a fight is under way.
+   */
   initUnit(u) {
     if ( !isMover(u) ) return;
-    u.wounded = !!u.spec.wounded;
+    for ( const key of PLAYED ) {
+      playedAsCondition(u, key);
+      if ( u.spec[key] ) u[key] = true;
+    }
     u.spirit = clamp(Number(u.spec.spirit?.value ?? 5), 0, Number(u.spec.spirit?.max ?? 5));
     u.spiritMax = Number(u.spec.spirit?.max ?? 5);
-    u.shaken = !!u.spec.shaken;
     u.momentumMax = u.spec.momentumMax ?? MOMENTUM.max;
     if ( typeof u.spec.control === "boolean" ) u.control = u.spec.control;
   },

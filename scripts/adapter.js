@@ -2,12 +2,14 @@
  * Ironsworn and Starforged adapter: reads foundry-ironsworn characters and foes into CombatantSpecs and writes a live
  * battle's turns back onto their sheets. Written against foundry-ironsworn 1.28 on Foundry v14.
  *
- * A character: its stats, health and momentum (its reset and ceiling as its impacts leave them), a wound already
- * marked, who has the initiative if a fight is under way (Starforged's combat position), and whether it fights at
- * range (an asset like Archer or Gunner, by its id; or more edge than iron). Its moves: Strike and Clash (+iron close,
- * +edge at range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them; a move of the
- * same name in the ruleset the world prefers (the "Rules preference" setting, when that ruleset is on) is played that
- * way. Heal, which anyone can make: a specialty only for one whose assets make healing its thing (a Herbalist, a Healer).
+ * A character: its stats, health and momentum (its reset and ceiling as its impacts leave them), its debilities or
+ * impacts (as the engine's conditions, by the system's ids: in a live battle the GM may mark or clear one, and it's
+ * written on the sheet), who has the initiative if a fight is under way (Starforged's combat position), and whether it
+ * fights at range (an asset like Archer or Gunner, by its id; or more edge than iron). Its moves: Strike and Clash
+ * (+iron close, +edge at range), End the Fight (Take Decisive Action in Starforged), as its sheet's ruleset plays them;
+ * a move of the same name in the ruleset the world prefers (the "Rules preference" setting, when that ruleset is on) is
+ * played that way. Heal, which anyone can make: a specialty only for one whose assets make healing its thing (a
+ * Herbalist, a Healer).
  * Its personality (traits.js), from everything on its sheet: its stats, assets, debilities or impacts, bonds or
  * connections, vows and legacies.
  * A foe: its progress track (its rank, and the ticks already marked) and what it is (its id: Ironlanders, Firstborn,
@@ -17,7 +19,7 @@
  * the GM gives it, kept on one of the characters) or each foe's own (Ironsworn's).
  */
 import { SystemAdapter, hasWords, localize } from "./core.js";
-import { ironswornRules } from "./rules.js";
+import { ironswornRules, DEBILITIES, DEBILITY_KEYS } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp } from "./build.js";
 import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
@@ -64,6 +66,8 @@ const assetOf = i => {
 const foeDsid = (actor, track) => String(ironFlags(actor).dsid || ironFlags(track).dsid || "");
 /** A key's first letter in capitals, as the system's language keys have it ("permanentlyharmed": Permanentlyharmed). */
 const capital = k => `${k.charAt(0).toUpperCase()}${k.slice(1)}`;
+/** The debilities or impacts its sheet has marked, as the engine's conditions ({wounded: 1, ...}). */
+const debilitiesOf = sys => Object.fromEntries(DEBILITY_KEYS.filter(k => sys?.debility?.[k] === true).map(k => [k, 1]));
 
 export class IronswornAdapter extends SystemAdapter {
   static systemId = "foundry-ironsworn";
@@ -153,6 +157,8 @@ export class IronswornAdapter extends SystemAdapter {
       // Spirit, for stress (mental shock, despair); shaken, already.
       spirit: { value: meterOf(actor, "spirit"), max: Number(sys.spirit?.max ?? 5) || 5 },
       shaken: !!sys.debility?.shaken,
+      // (Every debility or impact marked, as a condition: the GM may mark or clear one in a live battle.)
+      conditions: debilitiesOf(sys),
       control: position === "inControl" ? true : position === "inABadSpot" ? false : undefined,
       // No coins or goods: paying costs Supply, which the side shares (what one pays, all have that much less of).
       valuables: { money: supplyOf(actor), denominations: [{ label: game.i18n.localize("IRONSWORN.Supply"), value: 1 }], stowed: [], wielded: [], pooled: true },
@@ -443,11 +449,13 @@ export class IronswornAdapter extends SystemAdapter {
   }
 
   /**
-   * A token's sheet mid-fight. A foe on the encounter's one track: its hit points are the ticks left on that track (on
-   * the character who keeps it, as the table marks it), not on a track of its own.
+   * A token's sheet mid-fight: a character's debilities or impacts among its conditions (its spec's). A foe has none:
+   * whatever the GM puts on one, FastFighting keeps. A foe on the encounter's one track: its hit points are the ticks
+   * left on that track (on the character who keeps it, as the table marks it), not on a track of its own.
    */
   async readLiveState(tokenDoc, { spec = null } = {}) {
     const state = await super.readLiveState(tokenDoc);
+    if ( state && tokenDoc.actor?.type !== "character" ) state.carries = () => false;
     const plan = spec?.options?.system;
     if ( !state || plan?.mode !== "encounter" || !(plan.foeIds ?? []).includes(tokenDoc.id) ) return state;
     const holder = plan.holderTokenId ? tokenDoc.parent?.tokens.get(plan.holderTokenId)?.actor : null;
@@ -462,6 +470,36 @@ export class IronswornAdapter extends SystemAdapter {
   /** No initiative: the GM gives the spotlight to the character who acts. */
   get liveTurns() {
     return "spotlight";
+  }
+
+  /**
+   * A character's sheet carries its debilities or impacts (written as system.debility.<id>, read back as the same key);
+   * a foe's, none. The engine's own conditions the core keeps.
+   */
+  sheetCarries(key, actor) {
+    return DEBILITY_KEYS.includes(key) && (!actor || actor.type === "character");
+  }
+
+  /**
+   * A debility's or impact's name, the system's (its first letter in capitals, as a list shows it): its impact's word
+   * first, as the system has it, unless the world plays Ironsworn alone.
+   */
+  conditionLabel(key) {
+    if ( !DEBILITY_KEYS.includes(key) ) return null;
+    const on = enabledRulesets();
+    const keys = [`IRONSWORN.IMPACT.${capital(key)}`, `IRONSWORN.DEBILITY.${capital(key)}`];
+    const word = (on.length && on.every(r => r === "classic") ? keys.reverse() : keys).map(systemWord).find(Boolean);
+    return word ? `${word.charAt(0).toLocaleUpperCase(game.i18n.lang)}${word.slice(1)}` : null;
+  }
+
+  /**
+   * The debilities and impacts of the rulesets the world has on (Sundered Isles: Starforged's; with none known, both),
+   * then the core's own.
+   */
+  conditionChoices() {
+    const on = enabledRulesets().map(r => (r === "classic" ? "classic" : "starforged"));
+    const own = [...new Set((on.length ? on : Object.keys(DEBILITIES)).flatMap(r => DEBILITIES[r]))];
+    return [...own.map(key => ({ key })), ...super.conditionChoices()];
   }
 
   /** A live battle: one turn's changes (commit.js commitIronswornChanges). */

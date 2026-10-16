@@ -1,9 +1,10 @@
 /**
  * Ironsworn and Starforged live battles: each turn's changes written onto a token's actor, returning an undo record.
- * A character: health, spirit, momentum, a wound marked, shaken, and how it ended up (out cold, dead). A foe: progress
- * marked on its track (the turn's harm, by its rank), the track completed when it was beaten, and its token marked
- * defeated; on one track for the encounter, that track instead, kept on one of the characters. Also: what was given up
- * to end a standoff, and (for the planner's summary) what a fight changes.
+ * A character: health, spirit, momentum, its debilities or impacts marked or cleared (a wound, shaken, the GM's), and
+ * how it ended up (out cold, dead). A foe: progress marked on its track (the turn's harm, by its rank), the track
+ * completed when it was beaten, and its token marked defeated; on one track for the encounter, that track instead, kept
+ * on one of the characters. Also: what was given up to end a standoff, and (for the planner's summary) what a fight
+ * changes.
  *
  * Undo record shape (consumed by the core's make-it-so.js):
  *   { tokenUuid, actorUuid, actorUpdate, itemUpdates: [{id, update}], createdItems: [id], deletedItems: [data],
@@ -13,6 +14,7 @@ import { STATUS } from "./core.js";
 import { t } from "./words.js";
 import { TRACK, TICKS } from "./moves.js";
 import { RANK_KEYS, trackProgress, boxes } from "./conflict.js";
+import { DEBILITY_KEYS } from "./rules.js";
 
 /** This module's flags (the encounter a track is kept for). */
 const MODULE = "fast-fighting-ironsworn";
@@ -165,8 +167,9 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
 
 /**
  * A live battle: one turn's changes (the core's engine/changes.js) written onto a token. A character: health, and
- * spirit, momentum, a wound, shaken as the turn moved them (options.before); out cold, dead. A foe: the progress marked
- * on its track this turn, the track completed when it was beaten, its token defeated.
+ * spirit, momentum as the turn moved them (options.before); its debilities or impacts as the turn marked or cleared
+ * them (a wound, shaken, or the GM's word: changes.conditions); out cold, dead. A foe: the progress marked on its track
+ * this turn, the track completed when it was beaten, its token defeated.
  * @returns {Promise<object>} an undo record (its shape above)
  */
 export async function commitIronswornChanges(tokenDoc, spec, changes, final, options = {}) {
@@ -176,17 +179,21 @@ export async function commitIronswornChanges(tokenDoc, spec, changes, final, opt
   const was = options.before?.system ?? {};
   if ( spec.mover ) {
     const update = {};
-    const set = (path, value) => {
+    const set = (path, value, blank = 0) => {
       const before = foundry.utils.getProperty(actor, path);
       if ( before === value ) return;
       update[path] = value;
-      undo.actorUpdate[path] = before ?? 0;
+      undo.actorUpdate[path] = before ?? blank;
     };
     if ( changes.hp ) set("system.health.value", Math.max(0, changes.hp.to ?? 0));
     if ( Number.isFinite(s.spirit) && s.spirit !== was.spirit ) set(meterPath(actor, "spirit"), Math.max(0, s.spirit));
     if ( Number.isFinite(s.momentum) && s.momentum !== was.momentum ) set("system.momentum.value", s.momentum);
-    if ( s.wounded && !was.wounded ) set("system.debility.wounded", true);
-    if ( s.shaken && !was.shaken ) set("system.debility.shaken", true);
+    // (The engine's conditions that are debilities, by the system's ids; any others the core keeps.)
+    const debility = (key, on) => {
+      if ( DEBILITY_KEYS.includes(key) ) set(`system.debility.${key}`, on, false);
+    };
+    for ( const key of Object.keys(changes.conditions?.set ?? {}) ) debility(key, true);
+    for ( const key of changes.conditions?.cleared ?? [] ) debility(key, false);
     if ( changes.died ) await setStatus(actor, "dead", true, undo, { overlay: true });
     else if ( changes.fell ) await setStatus(actor, "unconscious", true, undo);
     if ( changes.revived ) await setStatus(actor, "unconscious", false, undo);
