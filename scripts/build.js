@@ -75,7 +75,8 @@ export function loreSizeUp(stats, boost = LORE_BOOST.default) {
  * Securing an advantage in a fight (in control): Secure an Advantage (Starforged: Gain Ground) for itself, and Aid
  * Your Ally for a friend, each with its best approach (the stat it would envision it with). What a hit gives, by the
  * ruleset: +1 on the next move (spent by that move), momentum; a strong hit aiding a friend puts both in control. A
- * miss pays the price.
+ * miss pays the price. Each is a maneuver on the story's master list: Secure an Advantage (and Gain Ground) gains ground,
+ * Aid Your Ally aids.
  */
 export function advantageMoves({ id, stats, moves }) {
   const m = moves ?? movesFor("classic");
@@ -101,9 +102,9 @@ export function advantageMoves({ id, stats, moves }) {
   return [
     // (Gaining leverage on a foe, finding its weak point: what a spoiler and a Puzzle-Maniac go for; one in a hurry
     // doesn't stop for it.)
-    { id: `${id}.advantage`, name: m.advantage.name, kind: "buff", targets: "self", cost: 1, move: "advantage", check, traits: [], setup: true, leans: ["hinders", "exploitWeakness"],
-      onDegree: [price, price, gives(m.advantage.weak), gives(m.advantage.strong)] },
-    { id: `${id}.aid`, name: m.aid?.name ?? moveName("AidYourAlly"), kind: "buff", includeSelf: false, cost: 1, move: "advantage", traits: [],
+    { id: `${id}.advantage`, name: m.advantage.name, kind: "buff", targets: "self", cost: 1, move: "advantage", maneuver: "gainGround", check, traits: [], setup: true,
+      leans: ["hinders", "exploitWeakness"], onDegree: [price, price, gives(m.advantage.weak), gives(m.advantage.strong)] },
+    { id: `${id}.aid`, name: m.aid?.name ?? moveName("AidYourAlly"), kind: "buff", includeSelf: false, cost: 1, move: "advantage", maneuver: "aid", traits: [],
       range: { increment: 120, max: 120, noPenalty: true }, check: { ...check, label: m.aid?.name ?? moveName("AidYourAlly") },
       onDegree: [price, price, gives(m.advantage.weak), { ...gives(m.advantage.strong), takeControl: true }] }
   ];

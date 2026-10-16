@@ -6,6 +6,7 @@ import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
 import { replay, runBatchSync, beginRun, beginRound, takeTurn, prepareBattle } from "../../FastFighting/scripts/engine/simulator.js";
 import { holdsOf, tryHold, isBound, escapeCost, untieCost } from "../../FastFighting/scripts/engine/behavior/holds.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
+import { maneuverOf } from "../../FastFighting/scripts/story/master.js";
 import { text } from "./foundry-i18n.js";
 
 /** A move's name, as the language file has it ("EndtheFight": End the Fight). */
@@ -242,6 +243,23 @@ describe("securing an advantage", () => {
     expect([k.control, f.control]).toEqual([true, true]);
     ironswornRules.gainResource(f, "momentum", 20);
     expect(f.resources.momentum).toBe(10);
+  });
+
+  test("maneuvers the story knows: Secure an Advantage (Gain Ground) gains ground, Aid Your Ally aids", () => {
+    for ( const ruleset of ["classic", "starforged"] ) {
+      const [self, aid] = advantageMoves({ id: "k", stats: { edge: 2 }, moves: movesFor(ruleset) });
+      expect([maneuverOf(self), maneuverOf(aid)]).toEqual(["gainGround", "aid"]);
+    }
+    // (And so a fight's log says, for the story to tell it as what it is.)
+    let secured = 0;
+    for ( let seed = 1; seed <= 10; seed++ ) {
+      const r = replay(fight([hero({ control: true, behavior: { hinders: 6, exploitWeakness: 6 } }), foe({ rank: 3 })], { maxRounds: 4 }), ironswornRules, seed);
+      for ( const e of r.log.filter(l => l.type === "buff" && l.actorId === "kara") ) {
+        expect([e.action, e.maneuver]).toEqual([move("SecureanAdvantage"), "gainGround"]);
+        secured += 1;
+      }
+    }
+    expect(secured).toBeGreaterThan(0);
   });
 
   test("a friend who asks for it (and can be heard) gets it: Aid Your Ally, while the aider is in control", () => {
