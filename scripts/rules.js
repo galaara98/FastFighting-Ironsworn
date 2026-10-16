@@ -13,7 +13,7 @@
  * Momentum is burned when it turns a miss into a hit (or a weak hit into a strong one, when there's plenty).
  * A character held (tied up, grabbed) breaks free by Face Danger (+edge or +iron); untying a friend is no move unless
  * a foe is beside it. A locked door is Face Danger too: +iron to force it, +shadow or +wits to pick it; hacked at, it
- * stands up to 3 harm.
+ * stands up to 1 to 3 harm in Ironsworn (a world setting), one hit in Starforged (a step of progress).
  *
  * Spirit: horrors' price is stress (Endure Stress, on spirit, as Endure Harm is on health; at 0 spirit, shaken, then
  * the stress table, where Face Desolation may make it give up the fight). Talking is Compel: a strong hit +1 momentum;
@@ -36,7 +36,7 @@
  */
 import { DOWNED_MODELS, STATUS, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
 import { movesFor, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
-import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS } from "./conflict.js";
+import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS, DOOR_HARM } from "./conflict.js";
 import { t, statName, moveName } from "./words.js";
 
 const BASE_DC = 10;
@@ -133,10 +133,11 @@ export const ironswornRules = {
   },
   /**
    * A locked door: forced or picked by Face Danger (spec.doorWork, tryDoor), as hard as an ordinary danger; hacked at, it
-   * stands up to 3 harm, the game's measure of a blow (a deadly weapon's two hits, a dangerous foe's two). A GM's own
+   * stands up to harm, the game's measure of a blow: 3 here (a deadly weapon's two hits, a dangerous foe's two), and in a
+   * battle as the world's door harm and the conflict say (conflict.js doorsFor: in Starforged's, one hit). A GM's own
    * numbers for a door (its wall's flags) are in the same terms: its hit points harm, its DCs adds (each 3 over 10, -1).
    */
-  door: { ac: BASE_DC, hp: 3, forceDC: BASE_DC, pickDC: BASE_DC },
+  door: { ac: BASE_DC, hp: DOOR_HARM.default, forceDC: BASE_DC, pickDC: BASE_DC },
   doorCosts: { open: {}, force: { action: 1 }, pick: { action: 1 } },
 
   /**

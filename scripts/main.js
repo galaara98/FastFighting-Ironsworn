@@ -5,6 +5,7 @@
  */
 import { IronswornAdapter } from "./adapter.js";
 import { registerLoreBoost } from "./lore.js";
+import { DOOR_HARM } from "./conflict.js";
 
 export const MODULE_ID = "fast-fighting-ironsworn";
 
@@ -35,6 +36,17 @@ Hooks.once("init", () => {
     config: true,
     type: Boolean,
     default: true
+  });
+  // Ironsworn: how much harm a locked door stands up to, hacked at (conflict.js doorsFor). Starforged's door is a step
+  // of progress, one hit, whatever this says.
+  game.settings.register(MODULE_ID, "doorHarm", {
+    name: "FFIRONSWORN.Settings.doorHarm.Name",
+    hint: "FFIRONSWORN.Settings.doorHarm.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    range: { min: DOOR_HARM.min, max: DOOR_HARM.max, step: DOOR_HARM.step },
+    default: DOOR_HARM.default
   });
   // With more than one ruleset on, Ironsworn, Starforged and Sundered Isles have moves of the same name (Strike, Clash,
   // Endure Harm, Enter the Fray ...) that play differently: which one a character makes. Shown as pills, one on at a time.

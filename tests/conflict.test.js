@@ -3,7 +3,7 @@ import { TICKS, TRACK } from "../scripts/moves.js";
 import { ironswornRules, endureStress } from "../scripts/rules.js";
 import { characterMoves, foeNumbers } from "../scripts/build.js";
 import { deriveIronswornTraits } from "../scripts/traits.js";
-import { defaultMode, defaultRank, joinEncounter, trackProgress, STEPS, ENCOUNTER, boxes } from "../scripts/conflict.js";
+import { defaultMode, defaultRank, joinEncounter, trackProgress, STEPS, ENCOUNTER, boxes, DOOR_HARM, doorHarmOf, doorsFor } from "../scripts/conflict.js";
 import { replay, prepareBattle } from "../../FastFighting/scripts/engine/simulator.js";
 import { createRun } from "../../FastFighting/scripts/engine/battle-state.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
@@ -51,6 +51,24 @@ describe("how an encounter is tracked", () => {
     const run = createRun(prepareBattle(fight([hero(), joinEncounter(foe(), { rank: 1 }), joinEncounter(foe({ id: "chief" }), { rank: 5 })]), ironswornRules));
     expect(stepsToConvince(run.byId.get("raider"), run)).toBe(STEPS[1]);
     expect(stepsToConvince(run.byId.get("chief"), run)).toBe(STEPS[5]);
+  });
+});
+
+describe("a locked door, as the conflict makes it", () => {
+  const doors = { d1: { locked: true, x: 20, y: 0 }, d2: { locked: true, x: 40, y: 0, hp: 6 } };
+
+  test("Ironsworn's (each foe's own track): as much harm as the world's setting, 1 to 3; a door's own hit points first", () => {
+    expect(doorsFor(doors, { mode: "foes", harm: 2 })).toEqual({ d1: { locked: true, x: 20, y: 0, hp: 2 }, d2: doors.d2 });
+    expect(doorsFor(doors, { mode: "foes" }).d1.hp).toBe(DOOR_HARM.default);
+    expect([0, 1, 2.4, 3, 9, "2", null, undefined, "", "x"].map(doorHarmOf)).toEqual([1, 1, 2, 3, 3, 2, 3, 3, 3, 3]);
+    expect(DOOR_HARM).toMatchObject({ min: 1, max: 3, step: 1, default: 3 });
+    expect(doors.d1.hp).toBeUndefined(); // (the scene's own left as it was)
+  });
+
+  test("Starforged's (one track for the encounter): a step of progress forward, one hit, whatever the setting says", () => {
+    expect(doorsFor(doors, { mode: "encounter", harm: 3 })).toEqual({ d1: { locked: true, x: 20, y: 0, hp: 1 }, d2: doors.d2 });
+    // (No doors, or none on the map: nothing to do.)
+    expect([doorsFor({}, { mode: "foes" }), doorsFor(null, { mode: "foes" })]).toEqual([{}, null]);
   });
 });
 

@@ -27,7 +27,7 @@ import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack } from "./commit.js";
 import { readIronswornTurn } from "./read-turn.js";
-import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
+import { TRACK_MODES, RANK_KEYS, DOOR_HARM, defaultMode, defaultRank, rankOf, joinEncounter, doorHarmOf, doorsFor } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
 import { ironswornHints, ironswornTactics, abilityMoves, assetKey, rangedAsset, healerAsset, plainText, characterBiography, foeBiography } from "./auto.js";
 
@@ -47,6 +47,14 @@ const deadlyWeapons = () => {
     return game.settings.get("fast-fighting-ironsworn", "deadlyWeapons") !== false;
   } catch ( err ) {
     return true;
+  }
+};
+/** How much harm a locked door stands up to in Ironsworn (a world setting, 1 to 3). */
+const doorHarm = () => {
+  try {
+    return doorHarmOf(game.settings.get("fast-fighting-ironsworn", "doorHarm"));
+  } catch ( err ) {
+    return DOOR_HARM.default;
   }
 };
 /** The system's word for a key, or null when it has none. */
@@ -430,6 +438,8 @@ export class IronswornAdapter extends SystemAdapter {
   applyPlannerSettings(spec, settings, { roster, resolved, setup }) {
     const plan = this.#conflict({ roster, resolved, setup, leaderId: spec.command?.friendly?.[0]?.id ?? null });
     spec.options.system = { mode: plan.mode, rank: plan.rank, friendly: "friendly" };
+    // (Its locked doors as tough as this conflict makes them: Ironsworn's harm, the setting; Starforged's, one hit.)
+    spec.doors = doorsFor(spec.doors, { mode: plan.mode, harm: doorHarm() });
     if ( plan.mode !== "encounter" ) return;
     const actor = plan.holder?.token.actor ?? null;
     const track = actor ? encounterTrack(actor, canvas.scene?.id) : null;

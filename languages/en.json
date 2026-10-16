@@ -23,6 +23,10 @@
         "Name": "Characters fight with deadly weapons",
         "Hint": "Ironsworn: a deadly weapon (a sword, an axe, a spear, a bow) inflicts 2 harm, an unarmed attack or a simple weapon 1. On, characters strike for 2 harm (3 on a strong Strike); off, 1. Only Ironsworn's Strike and Clash inflict harm this way; Starforged's mark progress."
       },
+      "doorHarm": {
+        "Name": "Ironsworn only: harm to break down a locked door",
+        "Hint": "Ironsworn (not Starforged): how much harm a locked door takes before it gives way, when someone hacks at it instead of forcing it or picking its lock (Face Danger). 3 is two hits with a deadly weapon; 1, any hit. In Starforged, getting past a door is a step of progress forward: one hit is enough, whatever this says (a fight with one track for the encounter counts as Starforged's). A door's own hit points, set on its wall, come first."
+      },
       "loreBoost": {
         "Name": "Lore-Collector advantage",
         "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 3× a sure thing more often than not. Default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price. Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5×; the rest helps Compel a hardier foe."

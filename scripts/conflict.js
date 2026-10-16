@@ -95,5 +95,27 @@ export function trackProgress(plan, replay) {
   return { before, after, fought, talked, achieved, lost, rank };
 }
 
+/** How much harm a locked door stands up to in Ironsworn: a world setting, 1 to 3 (3: a deadly weapon's two hits). */
+export const DOOR_HARM = Object.freeze({ min: 1, max: 3, step: 1, default: 3 });
+
+/** The door harm setting's value within its bounds, whole (the default for anything that isn't a number). */
+export const doorHarmOf = v => (Number.isFinite(Number(v)) && v !== null && v !== "" ? Math.max(DOOR_HARM.min, Math.min(DOOR_HARM.max, Math.round(Number(v)))) : DOOR_HARM.default);
+
+/**
+ * The scene's doors (spec.doors) as tough as this conflict makes them, where a door's own hit points (its wall's flags)
+ * don't say. Tracked Ironsworn's way (each foe's own track), a door stands up to the world's door harm; Starforged's
+ * (one track for the encounter), getting past it is a step of progress forward, so one hit is enough. A mixed party
+ * goes by how the encounter is tracked: Starforged's where any character plays its moves, unless the GM says otherwise.
+ * @param {object} doors          {id: {locked, x, y, ...its own numbers}}
+ * @param {object} d
+ * @param {string} d.mode         how the encounter is tracked: "encounter" | "foes"
+ * @param {number} [d.harm]       the world's door harm (1-3)
+ */
+export function doorsFor(doors, { mode, harm = DOOR_HARM.default } = {}) {
+  if ( !doors ) return doors;
+  const hp = mode === "encounter" ? 1 : doorHarmOf(harm);
+  return Object.fromEntries(Object.entries(doors).map(([id, d]) => [id, d?.hp === undefined || d?.hp === null ? { ...d, hp } : d]));
+}
+
 /** Whole boxes on a track (four ticks a box), 0-10. */
 export const boxes = ticks => Math.max(0, Math.min(10, Math.floor((Number(ticks) || 0) / 4)));

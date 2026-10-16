@@ -4,6 +4,7 @@ import { ironswornRules, progressScore } from "../scripts/rules.js";
 import { characterMoves, foeNumbers, advantageMoves, loreSizeUp, doorWork } from "../scripts/build.js";
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
 import { IronswornAdapter } from "../scripts/adapter.js";
+import { doorsFor } from "../scripts/conflict.js";
 import { replay, runBatchSync, beginRun, beginRound, takeTurn, prepareBattle } from "../../FastFighting/scripts/engine/simulator.js";
 import { holdsOf, tryHold, isBound, escapeCost, untieCost } from "../../FastFighting/scripts/engine/behavior/holds.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
@@ -467,18 +468,55 @@ describe("a locked door", () => {
     expect(through).toBeGreaterThan(3);
   });
 
-  test("hacked at, it stands up to 3 harm: a deadly weapon's two hits", () => {
-    expect(ironswornRules.door).toMatchObject({ hp: 3, ac: 10, forceDC: 10, pickDC: 10 });
+  /**
+   * The hits it takes to hack the door down (each [harm, broke]), in every fight of a few where it did: by a character of
+   * that ruleset with a deadly weapon or none, the conflict tracked as `mode` says, the world's door harm `harm`.
+   */
+  const hacking = ({ ruleset = "classic", extraHarm = 1, mode = "foes", harm = 3 }) => {
     // (No way past it but blows: the one who can't Face Danger it here.)
-    const actions = characterMoves({ id: "kara", stats, extraHarm: 1 });
-    let broken = 0;
+    const actions = characterMoves({ id: "kara", stats, ruleset, extraHarm });
+    const out = [];
     for ( let seed = 1; seed <= 6; seed++ ) {
-      const r = replay(behindDoor({ actions, doorWork: { force: { mod: -20 }, pick: { mod: -20 } } }, 8), ironswornRules, seed);
-      const hits = doorEvents(r).filter(e => e.method === "attack" && e.hit);
-      if ( !hits.some(e => e.success) ) continue;
-      expect(hits.map(e => [e.damage, e.success])).toEqual([[2, false], [2, true]]);
-      broken += 1;
+      const spec = behindDoor({ ruleset, actions, doorWork: { force: { mod: -20 }, pick: { mod: -20 } } }, 8);
+      spec.doors = doorsFor(spec.doors, { mode, harm });
+      const hits = doorEvents(replay(spec, ironswornRules, seed)).filter(e => e.method === "attack" && e.hit);
+      if ( hits.some(e => e.success) ) out.push(hits.map(e => [e.damage, e.success]));
     }
-    expect(broken).toBeGreaterThan(3);
+    expect(out.length).toBeGreaterThan(3);
+    return [...new Set(out.map(h => JSON.stringify(h)))].map(h => JSON.parse(h));
+  };
+
+  test("hacked at in Ironsworn, it stands up to the world's door harm (3 unless it says less): a deadly weapon's two hits", () => {
+    expect(ironswornRules.door).toMatchObject({ hp: 3, ac: 10, forceDC: 10, pickDC: 10 });
+    expect(hacking({ harm: 3 })).toEqual([[[2, false], [2, true]]]);
+    expect(hacking({ harm: 2 })).toEqual([[[2, true]]]);
+    expect(hacking({ harm: 2, extraHarm: 0 })).toEqual([[[1, false], [1, true]]]);
+    expect(hacking({ harm: 1, extraHarm: 0 })).toEqual([[[1, true]]]);
+  });
+
+  test("in Starforged a door overcome is a step of progress forward: one hit, whatever the setting", () => {
+    expect(hacking({ ruleset: "starforged", mode: "encounter", harm: 3 })).toEqual([[[2, true]]]);
+    expect(hacking({ ruleset: "classic", extraHarm: 0, mode: "encounter", harm: 3 })).toEqual([[[1, true]]]);
+  });
+
+  test("a battle's doors are made so as it's set up (the planner's settings): Ironsworn's or Starforged's, by its tracking", () => {
+    const adapter = new IronswornAdapter();
+    globalThis.canvas = { scene: null };
+    game.settings = { get: (id, key) => (key === "doorHarm" ? 2 : undefined) };
+    try {
+      const doorsOf = ruleset => {
+        const kara = hero({ ruleset });
+        const roster = [{ token: { id: "kara", actor: null }, spec: kara }, { token: { id: "raider" }, spec: foe() }];
+        const spec = fight([kara, foe()]);
+        spec.doors = { d1: { locked: true, x: 20, y: 0 }, d2: { locked: true, x: 40, y: 0, hp: 5 } };
+        adapter.applyPlannerSettings(spec, {}, { roster, resolved: { kara: "friendly", raider: "hostile" }, setup: {} });
+        return [spec.doors.d1.hp, spec.doors.d2.hp];
+      };
+      // (Ironsworn: the setting's 2; Starforged, one track for the encounter: one hit. A door's own numbers stay.)
+      expect(doorsOf("classic")).toEqual([2, 5]);
+      expect(doorsOf("starforged")).toEqual([1, 5]);
+    } finally {
+      delete globalThis.canvas;
+    }
   });
 });
