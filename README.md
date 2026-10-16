@@ -158,7 +158,7 @@ With more than one ruleset on in the world, Ironsworn, Starforged and Sundered I
 ## Do it For Real Now
 
 In a live battle, each turn's changes go onto the sheets as the turn is played:
-- A character: health, spirit, momentum, its debilities or impacts (a wound or shaken the fight marks, and any the GM marks or clears in the Battle Interface, which offers them by the system's names), and how it ended (out cold, dying, dead, or deathbound after Face Death). What a player marks or clears on the sheet between turns counts from the next one.
+- A character: health, spirit, momentum, its debilities or impacts (a wound or shaken the fight marks, and any the GM marks or clears in the Battle Vantage, which offers them by the system's names), and how it ended (out cold, dying, dead, or deathbound after Face Death). What a player marks or clears on the sheet between turns counts from the next one.
 - One track for the encounter: its progress, on the sheet of the character who keeps it (completed when the objective is achieved); the foes' own tracks are left as they were.
 - A foe: progress marked on its track, the track completed when it was beaten (and its token marked defeated); a foe that fled is hidden.
 - Supply paid: lowered for every character on the payer's side, and (with the system's Shared Supply Tracker on, as it is by default) every character and starship it shares Supply with. Ground given: a mark of progress on the foe's track.

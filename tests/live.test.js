@@ -153,7 +153,7 @@ describe("debilities and impacts: conditions the GM puts on, kept on the sheet",
     const foe = await adapter.readLiveState(token("foe"));
     expect(foe.conditions).toEqual({});
     expect(DEBILITY_KEYS.some(key => foe.carries(key))).toBe(false);
-    // (And so the Battle Interface, asking for that creature, says so.)
+    // (And so the Battle Vantage, asking for that creature, says so.)
     expect(DEBILITY_KEYS.some(key => adapter.sheetCarries(key, token("foe").actor))).toBe(false);
     expect(DEBILITY_KEYS.every(key => adapter.sheetCarries(key, token("character").actor))).toBe(true);
   });

@@ -72,7 +72,7 @@ const PLAYED = ["wounded", "shaken"];
 
 /**
  * A character's wounded or shaken (u.wounded, u.shaken), as the rules read and mark it, is its condition of that key:
- * the sheet's, the GM's (the Battle Interface) and the fight's own alike. Marking it marks the condition (and so the
+ * the sheet's, the GM's (the Battle Vantage) and the fight's own alike. Marking it marks the condition (and so the
  * sheet, once the turn is written); the GM or the sheet taking the condition off takes it off for the rules too.
  */
 function playedAsCondition(u, key) {
