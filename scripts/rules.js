@@ -71,6 +71,15 @@ export const DEBILITY_KEYS = Object.freeze([...new Set(Object.values(DEBILITIES)
 const PLAYED = ["wounded", "shaken"];
 
 /**
+ * The debilities and impacts in the story's words (its master list of conditions): wounded is bloodied, permanently
+ * harmed maimed; shaken and maimed are the list's own. The rest are burdens nobody watching would see (short of supplies,
+ * weighed down, a curse, a debt; battered and cursed, a vehicle's), told not at all (false): not as the list's cursed or
+ * slowed, which share a word with them.
+ */
+const TOLD = Object.freeze({ wounded: "bloodied", shaken: "shaken", maimed: "maimed", permanentlyharmed: "maimed" });
+const STORY_DEBILITIES = Object.freeze(Object.fromEntries(DEBILITY_KEYS.map(k => [k, TOLD[k] ?? false])));
+
+/**
  * A character's wounded or shaken (u.wounded, u.shaken), as the rules read and mark it, is its condition of that key:
  * the sheet's, the GM's (the Battle Vantage) and the fight's own alike. Marking it marks the condition (and so the
  * sheet, once the turn is written); the GM or the sheet taking the condition off takes it off for the rules too.
@@ -648,6 +657,11 @@ export const ironswornRules = {
 
   storyDamageType(type) {
     return type === "harm" ? "bludgeoning" : type;
+  },
+
+  /** Its debilities and impacts as the story tells them (STORY_DEBILITIES); any other condition as the master list has it. */
+  storyCondition(key) {
+    return Object.hasOwn(STORY_DEBILITIES, key) ? STORY_DEBILITIES[key] : null;
   }
 };
 
