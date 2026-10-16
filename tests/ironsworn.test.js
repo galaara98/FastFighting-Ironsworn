@@ -461,8 +461,8 @@ describe("a locked door", () => {
       const r = replay(behindDoor({ doorWork: doorWork(stats) }), ironswornRules, seed);
       const tries = doorEvents(r).filter(e => e.method !== "giveup");
       expect(tries.length).toBeGreaterThan(0);
-      // (Quicker than hacking at it: always Face Danger, an action roll's d6.)
-      for ( const e of tries ) expect([e.method, e.mod, e.natural >= 1 && e.natural <= 6]).toEqual(["force", 3, true]);
+      // (Quicker than hacking at it: always Face Danger, the system's own try, told in its words.)
+      for ( const e of tries ) expect([e.method, String(e.said ?? "").includes(move("FaceDanger")), e.natural]).toEqual(["force", true, undefined]);
       if ( tries.some(e => e.success) && r.log.some(e => e.actorId === "kara" && e.type === "attack" && e.targetId === "raider") ) through += 1;
     }
     expect(through).toBeGreaterThan(3);
@@ -486,17 +486,24 @@ describe("a locked door", () => {
     return [...new Set(out.map(h => JSON.stringify(h)))].map(h => JSON.parse(h));
   };
 
-  test("hacked at in Ironsworn, it stands up to the world's door harm (3 unless it says less): a deadly weapon's two hits", () => {
+  /** Each way the door went down is one of `ways` (a strong hit does the Strike's strong harm), and `most` is among them. */
+  const wentDown = (seen, ways, most) => {
+    for ( const s of seen ) expect(ways).toContainEqual(s);
+    expect(seen).toContainEqual(most);
+  };
+
+  test("hacked at in Ironsworn, it stands up to the world's door harm (3 unless it says less): a deadly weapon's two hits, or one strong one", () => {
     expect(ironswornRules.door).toMatchObject({ hp: 3, ac: 10, forceDC: 10, pickDC: 10 });
-    expect(hacking({ harm: 3 })).toEqual([[[2, false], [2, true]]]);
-    expect(hacking({ harm: 2 })).toEqual([[[2, true]]]);
-    expect(hacking({ harm: 2, extraHarm: 0 })).toEqual([[[1, false], [1, true]]]);
-    expect(hacking({ harm: 1, extraHarm: 0 })).toEqual([[[1, true]]]);
+    // (A deadly weapon: 2 harm on a weak hit, 3 on a strong one. Unarmed: 1 and 2.)
+    wentDown(hacking({ harm: 3 }), [[[2, false], [2, true]], [[2, false], [3, true]], [[3, true]]], [[2, false], [2, true]]);
+    wentDown(hacking({ harm: 2 }), [[[2, true]], [[3, true]]], [[2, true]]);
+    wentDown(hacking({ harm: 2, extraHarm: 0 }), [[[1, false], [1, true]], [[1, false], [2, true]], [[2, true]]], [[1, false], [1, true]]);
+    wentDown(hacking({ harm: 1, extraHarm: 0 }), [[[1, true]], [[2, true]]], [[1, true]]);
   });
 
   test("in Starforged a door overcome is a step of progress forward: one hit, whatever the setting", () => {
-    expect(hacking({ ruleset: "starforged", mode: "encounter", harm: 3 })).toEqual([[[2, true]]]);
-    expect(hacking({ ruleset: "classic", extraHarm: 0, mode: "encounter", harm: 3 })).toEqual([[[1, true]]]);
+    wentDown(hacking({ ruleset: "starforged", mode: "encounter", harm: 3 }), [[[2, true]], [[3, true]]], [[2, true]]);
+    wentDown(hacking({ ruleset: "classic", extraHarm: 0, mode: "encounter", harm: 3 }), [[[1, true]], [[2, true]]], [[1, true]]);
   });
 
   test("a battle's doors are made so as it's set up (the planner's settings): Ironsworn's or Starforged's, by its tracking", () => {
