@@ -72,6 +72,17 @@ export function loreSizeUp(stats, boost = LORE_BOOST.default) {
 }
 
 /**
+ * A locked door, for a character: Face Danger, +iron to force it (breaking it in), the better of +shadow (trickery) and
+ * +wits (know-how) to pick its lock. Anyone may try either: the game asks no tools or training. The stat goes with it,
+ * for the words (rules.tryDoor).
+ */
+export function doorWork(stats) {
+  const of = k => Number(stats?.[k]) || 1;
+  const pick = of("wits") > of("shadow") ? "wits" : "shadow";
+  return { force: { mod: of("iron"), stat: "iron" }, pick: { mod: of(pick), stat: pick } };
+}
+
+/**
  * Securing an advantage in a fight (in control): Secure an Advantage (Starforged: Gain Ground) for itself, and Aid
  * Your Ally for a friend, each with its best approach (the stat it would envision it with). What a hit gives, by the
  * ruleset: +1 on the next move (spent by that move), momentum; a strong hit aiding a friend puts both in control. A

@@ -1,8 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { grade, scoreChances, chances, harmTable, movesFor, TICKS } from "../scripts/moves.js";
 import { ironswornRules, progressScore } from "../scripts/rules.js";
-import { characterMoves, foeNumbers, advantageMoves, loreSizeUp } from "../scripts/build.js";
+import { characterMoves, foeNumbers, advantageMoves, loreSizeUp, doorWork } from "../scripts/build.js";
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
+import { IronswornAdapter } from "../scripts/adapter.js";
 import { replay, runBatchSync, beginRun, beginRound, takeTurn, prepareBattle } from "../../FastFighting/scripts/engine/simulator.js";
 import { holdsOf, tryHold, isBound, escapeCost, untieCost } from "../../FastFighting/scripts/engine/behavior/holds.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
@@ -301,15 +302,16 @@ describe("a Lore-Collector in Ironsworn", () => {
   });
 });
 
+/** A fight a round in, its log kept. */
+const begun = (list, seed = 1) => {
+  const run = beginRun(prepareBattle(fight(list), ironswornRules), seed, { log: true });
+  beginRound(run, 1);
+  return run;
+};
+/** Dice that come up as given (the d6, then the two challenge dice). */
+const dice = (...values) => ({ ...createRng(1), die: () => values.shift() });
+
 describe("breaking free, and freeing a friend", () => {
-  /** A fight a round in, its log kept. */
-  const begun = (list, seed = 1) => {
-    const run = beginRun(prepareBattle(fight(list), ironswornRules), seed, { log: true });
-    beginRound(run, 1);
-    return run;
-  };
-  /** Dice that come up as given (the d6, then the two challenge dice). */
-  const dice = (...values) => ({ ...createRng(1), die: () => values.shift() });
   const tie = u => Object.assign(u, { bound: true, boundBy: null, status: "bound" });
   const bonds = { key: "bound", others: "untie" };
   const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
@@ -395,5 +397,88 @@ describe("breaking free, and freeing a friend", () => {
     kara.wounded = true;
     kara.baseConds.shaken = 1;
     expect(holdsOf(run, kara)).toEqual([]);
+  });
+});
+
+describe("a locked door", () => {
+  const stats = { edge: 1, heart: 1, iron: 3, shadow: 1, wits: 2 };
+  const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
+  /** A character, a foe beyond a door 20 feet off (the way the fight found runs through it), as the core's own tests have it. */
+  const behindDoor = (over = {}, rounds = 4) => {
+    const kara = hero({ stats, position: { x: 0, y: 0, size: 5 }, desires: [{ kind: "hurt", targetId: "raider", level: 90 }], ...over });
+    const spec = fight([kara, foe({ position: { x: 40, y: 0, size: 5 } })], { positioning: true, maxRounds: rounds, aftermath: "none" });
+    spec.doors = { d1: { locked: true, x: 20, y: 0 } };
+    spec.approach = { kara: { raider: { dist: 35, mult: 1, speed: 25, mode: "walk", los: true, meleeOk: true, doors: ["d1"] } } };
+    return spec;
+  };
+  const doorEvents = r => r.log.filter(e => e.type === "door" && e.actorId === "kara");
+
+  test("Face Danger: +iron to force it, the better of +shadow and +wits to pick it; anyone may try either", () => {
+    expect(doorWork(stats)).toEqual({ force: { mod: 3, stat: "iron" }, pick: { mod: 2, stat: "wits" } });
+    expect(doorWork({ iron: 1, shadow: 3, wits: 2 }).pick).toEqual({ mod: 3, stat: "shadow" });
+    expect(doorWork({ iron: 2, shadow: 2, wits: 2 }).pick.stat).toBe("shadow");
+    expect(doorWork({}).force).toEqual({ mod: 1, stat: "iron" });
+  });
+
+  test("a character's sheet gives it that Face Danger", async () => {
+    globalThis.foundry = { utils: { getProperty: (o, path) => path.split(".").reduce((v, k) => v?.[k], o) } };
+    try {
+      const actor = {
+        type: "character", id: "act", uuid: "Actor.act", name: "Kara", statuses: new Set(), effects: [], items: [],
+        system: { ...stats, health: { value: 5, max: 5 }, spirit: { value: 5, max: 5 }, supply: { value: 3, max: 5 }, momentum: { value: 2, max: 10, resetValue: 2 }, debility: {} }
+      };
+      const spec = await new IronswornAdapter().toCombatantSpec({ id: "tok", uuid: "Scene.s.Token.tok", name: "Kara", actor, parent: null });
+      expect(spec.doorWork).toEqual(doorWork(stats));
+    } finally {
+      delete globalThis.foundry;
+    }
+  });
+
+  test("a try: a strong hit gets through (+1 momentum), a weak hit at a cost, a miss pays the price; as hard as the door", () => {
+    const run = begun([hero({ stats, doorWork: doorWork(stats) }), foe()]);
+    const kara = Object.assign(run.byId.get("kara"), { control: true });
+    const [iron, wits] = [text("FFIRONSWORN.Stat.iron"), text("FFIRONSWORN.Stat.wits")];
+    run.rng = dice(4, 2, 5);
+    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "force", mod: 3, dc: 10 })).toEqual({
+      success: true, degree: 3, said: { text: roll("Strong", { stat: iron, total: 7, dice: "2, 5" }), data: expect.objectContaining({ move: "faceDanger", stat: "iron", method: "force", door: "d1" }) }
+    });
+    expect(kara.resources.momentum).toBe(3);
+    run.rng = dice(1, 2, 6);
+    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "pick", mod: 2, dc: 10 })).toMatchObject({ success: true, degree: 2, said: { text: roll("Weak", { stat: wits, total: 3, dice: "2, 6" }) } });
+    expect(kara.resources.momentum).toBe(2);
+    // (A harder door, DC 16: two adds off. 4 + 3 would beat both dice; 5 beats neither.)
+    run.rng = dice(4, 5, 6);
+    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "force", mod: 3, dc: 16 })).toMatchObject({ success: false, degree: 1, said: { text: roll("Miss", { stat: iron, total: 5, dice: "5, 6" }) } });
+    expect([kara.resources.momentum, kara.control]).toEqual([1, false]);
+    // A foe doesn't roll: the core's.
+    expect(ironswornRules.tryDoor(run, run.byId.get("raider"), { id: "d1" }, { method: "force", mod: 2, dc: 10 })).toBe(null);
+  });
+
+  test("in a fight, a character forces its way through with its Face Danger (+iron), and is on to the foe beyond", () => {
+    let through = 0;
+    for ( let seed = 1; seed <= 6; seed++ ) {
+      const r = replay(behindDoor({ doorWork: doorWork(stats) }), ironswornRules, seed);
+      const tries = doorEvents(r).filter(e => e.method !== "giveup");
+      expect(tries.length).toBeGreaterThan(0);
+      // (Quicker than hacking at it: always Face Danger, an action roll's d6.)
+      for ( const e of tries ) expect([e.method, e.mod, e.natural >= 1 && e.natural <= 6]).toEqual(["force", 3, true]);
+      if ( tries.some(e => e.success) && r.log.some(e => e.actorId === "kara" && e.type === "attack" && e.targetId === "raider") ) through += 1;
+    }
+    expect(through).toBeGreaterThan(3);
+  });
+
+  test("hacked at, it stands up to 3 harm: a deadly weapon's two hits", () => {
+    expect(ironswornRules.door).toMatchObject({ hp: 3, ac: 10, forceDC: 10, pickDC: 10 });
+    // (No way past it but blows: the one who can't Face Danger it here.)
+    const actions = characterMoves({ id: "kara", stats, extraHarm: 1 });
+    let broken = 0;
+    for ( let seed = 1; seed <= 6; seed++ ) {
+      const r = replay(behindDoor({ actions, doorWork: { force: { mod: -20 }, pick: { mod: -20 } } }, 8), ironswornRules, seed);
+      const hits = doorEvents(r).filter(e => e.method === "attack" && e.hit);
+      if ( !hits.some(e => e.success) ) continue;
+      expect(hits.map(e => [e.damage, e.success])).toEqual([[2, false], [2, true]]);
+      broken += 1;
+    }
+    expect(broken).toBeGreaterThan(3);
   });
 });

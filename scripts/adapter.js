@@ -20,7 +20,7 @@
  */
 import { SystemAdapter, hasWords, localize } from "./core.js";
 import { ironswornRules, DEBILITIES, DEBILITY_KEYS } from "./rules.js";
-import { characterMoves, foeNumbers, loreSizeUp } from "./build.js";
+import { characterMoves, foeNumbers, loreSizeUp, doorWork } from "./build.js";
 import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
@@ -171,6 +171,8 @@ export class IronswornAdapter extends SystemAdapter {
       sizeUp: { ...loreSizeUp(stats, loreBoost()), label: game.i18n.localize("FFIRONSWORN.SecureAnAdvantage") },
       // A Thief lifting something: Face Danger, +shadow (the foe gives ground; a character, Supply).
       theft: { skill: t("SkillMove", { move: moveName("FaceDanger"), stat: statName("shadow") }), mod: stats.shadow },
+      // A locked door: Face Danger, +iron to force it, +shadow or +wits to pick it.
+      doorWork: doorWork(stats),
       creatureTraits: ["human"],
       social: {
         pitches: {

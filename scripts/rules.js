@@ -12,7 +12,8 @@
  * Decisive Action), a progress roll: a hit ends that foe's part in the fight; a miss loses it, and the price is paid.
  * Momentum is burned when it turns a miss into a hit (or a weak hit into a strong one, when there's plenty).
  * A character held (tied up, grabbed) breaks free by Face Danger (+edge or +iron); untying a friend is no move unless
- * a foe is beside it.
+ * a foe is beside it. A locked door is Face Danger too: +iron to force it, +shadow or +wits to pick it; hacked at, it
+ * stands up to 3 harm.
  *
  * Spirit: horrors' price is stress (Endure Stress, on spirit, as Endure Harm is on health; at 0 spirit, shaken, then
  * the stress table, where Face Desolation may make it give up the fight). Talking is Compel: a strong hit +1 momentum;
@@ -130,7 +131,12 @@ export const ironswornRules = {
   standCost() {
     return { move: 15 };
   },
-  door: { ac: 10, hp: 12, threshold: 0, forceDC: 10, pickDC: 10 },
+  /**
+   * A locked door: forced or picked by Face Danger (spec.doorWork, tryDoor), as hard as an ordinary danger; hacked at, it
+   * stands up to 3 harm, the game's measure of a blow (a deadly weapon's two hits, a dangerous foe's two). A GM's own
+   * numbers for a door (its wall's flags) are in the same terms: its hit points harm, its DCs adds (each 3 over 10, -1).
+   */
+  door: { ac: BASE_DC, hp: 3, forceDC: BASE_DC, pickDC: BASE_DC },
   doorCosts: { open: {}, force: { action: 1 }, pick: { action: 1 } },
 
   /**
@@ -553,22 +559,24 @@ export const ironswornRules = {
   breakFree(run, who, hold, { freeing = false } = {}) {
     if ( !isMover(who) ) return null;
     if ( freeing && hold.others === "untie" && !foeBeside(run, who) ) return null;
-    const m = movesOf(who);
     const stats = who.spec.stats ?? {};
     const stat = (hold.key === "grabbed" ? ["iron", "edge"] : ["edge", "iron"]).reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
-    const label = moveName("FaceDanger");
-    const first = actionRoll(run.rng, stats[stat] ?? 1);
-    const roll = first.degree <= 1 ? ironswornRules.adjustRoll(run, who, first, { kind: "check", label }) : first;
-    // (A strong hit, +1 momentum; a weak hit's cost and a miss's price, -1; a miss loses the upper hand too.)
-    if ( roll.degree === 3 ) setMomentum(who, momentumOf(who) + 1);
-    else setMomentum(who, momentumOf(who) - 1);
-    if ( roll.degree <= 1 ) who.control = false;
-    const what = roll.degree === 3 ? t("Hold.Strong") : roll.degree === 2 ? t("Hold.Weak") : t("Hold.Miss", { price: m.price.name, control: m.control.off });
-    const line = t("MoveRoll", { move: label, stat: statName(stat), total: first.total, dice: first.challenge.join(", "), what });
-    return {
-      success: roll.degree >= 2, degree: roll.degree,
-      said: { text: roll.said ? `${line} · ${roll.said.text}` : line, data: { move: "faceDanger", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree, burned: roll.burned ?? 0, freeing } }
-    };
+    return faceDanger(run, who, stat, { data: { freeing } });
+  },
+
+  /* Doors ----------------------------------------------------------------- */
+  /**
+   * A try at a locked door (the core's force or pick, by `method`): Face Danger, as breaking free is, with the stat its
+   * doorWork gives that way (+iron to force it; +shadow or +wits to pick it) and its mod, as hard as the door (its DC, as
+   * adds). A strong hit gets through, +1 momentum; a weak hit gets through at a cost (-1 momentum); a miss doesn't, and
+   * pays the price (-1 momentum, the upper hand lost). Foes don't roll: null, the core's roll.
+   * {success, degree, said}: no DC and no d20, as breakFree.
+   */
+  tryDoor(run, who, door, { method = "force", mod = null, dc = BASE_DC } = {}) {
+    if ( !isMover(who) ) return null;
+    const work = who.spec.doorWork?.[method];
+    const stat = work?.stat ?? (method === "pick" ? "shadow" : "iron");
+    return faceDanger(run, who, stat, { mod: mod ?? work?.mod, adds: addsFor(dc), data: { method, door: door?.id ?? null } });
   },
 
   /* What's typical, by rank -------------------------------------------- */
@@ -673,6 +681,29 @@ function foeBeside(run, u) {
   const enemies = run.prep.sides[u.side]?.enemies ?? new Set();
   const near = o => u.adjacent?.has(o.id) || (!!run.prep.options.positioning && (edgeDistance(u, o) ?? Infinity) <= 5);
   return run.units.some(o => enemies.has(o.side) && isStanding(o) && near(o));
+}
+
+/**
+ * Face Danger, for a character getting past something (breaking free, a locked door): +stat (or the mod it's given for
+ * it), with any adds. A strong hit, +1 momentum; a weak hit's cost and a miss's price, -1; a miss loses the upper hand
+ * too. Momentum is burned to turn a miss into a hit, never a weak hit into a strong one (that would only spare a point).
+ * The words are a hold's (Hold.*), which fit any of them. {success, degree, said: {text, data}}
+ */
+function faceDanger(run, who, stat, { mod = null, adds = 0, data = {} } = {}) {
+  const m = movesOf(who);
+  const label = moveName("FaceDanger");
+  const first = actionRoll(run.rng, Number.isFinite(mod) ? mod : who.spec.stats?.[stat] ?? 1, { adds });
+  const roll = first.degree <= 1 ? ironswornRules.adjustRoll(run, who, first, { kind: "check", label }) : first;
+  // (A strong hit, +1 momentum; a weak hit's cost and a miss's price, -1; a miss loses the upper hand too.)
+  if ( roll.degree === 3 ) setMomentum(who, momentumOf(who) + 1);
+  else setMomentum(who, momentumOf(who) - 1);
+  if ( roll.degree <= 1 ) who.control = false;
+  const what = roll.degree === 3 ? t("Hold.Strong") : roll.degree === 2 ? t("Hold.Weak") : t("Hold.Miss", { price: m.price.name, control: m.control.off });
+  const line = t("MoveRoll", { move: label, stat: statName(stat), total: first.total, dice: first.challenge.join(", "), what });
+  return {
+    success: roll.degree >= 2, degree: roll.degree,
+    said: { text: roll.said ? `${line} · ${roll.said.text}` : line, data: { move: "faceDanger", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree, burned: roll.burned ?? 0, ...data } }
+  };
 }
 
 /**
