@@ -517,7 +517,6 @@ export const ironswornRules = {
     return 0.5;
   },
 
-  /** What Make it So needs beyond the core's: momentum, a wound, who has the initiative, Face Death. */
   /**
    * A live battle's next spotlight (no initiative: the GM gives it): the next character able to act, in turn after the
    * last to have it. Foes never take one of their own (they answer the characters' moves), unless no character can act.
@@ -534,6 +533,10 @@ export const ironswornRules = {
     return list.find(u => order.indexOf(u) > at) ?? list[0];
   },
 
+  /**
+   * What writing a turn onto the sheets (commit.js) and the planner's summary need beyond the core's: spirit, shaken,
+   * momentum, a wound, who has the initiative, Face Death.
+   */
   capture(u) {
     return {
       spirit: isMover(u) ? u.spirit ?? null : null,

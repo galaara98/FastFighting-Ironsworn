@@ -1,6 +1,6 @@
 /**
- * Ironsworn and Starforged adapter: reads foundry-ironsworn characters and foes into CombatantSpecs and commits
- * outcomes back. Written against foundry-ironsworn 1.28 on Foundry v14.
+ * Ironsworn and Starforged adapter: reads foundry-ironsworn characters and foes into CombatantSpecs and writes a live
+ * battle's turns back onto their sheets. Written against foundry-ironsworn 1.28 on Foundry v14.
  *
  * A character: its stats, health and momentum (its reset and ceiling as its impacts leave them), a wound already
  * marked, who has the initiative if a fight is under way (Starforged's combat position), and whether it fights at
@@ -23,7 +23,7 @@ import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
-import { commitIronswornOutcome, commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack, commitEncounterTrack } from "./commit.js";
+import { commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack } from "./commit.js";
 import { readIronswornTurn } from "./read-turn.js";
 import { TRACK_MODES, RANK_KEYS, defaultMode, defaultRank, rankOf, joinEncounter } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
@@ -417,7 +417,7 @@ export class IronswornAdapter extends SystemAdapter {
 
   /**
    * One track for the encounter: every foe joins it (conflict.js), starting where the track kept on that character
-   * stands (the one this scene's encounters keep there), and Make it So is told where it's kept.
+   * stands (the one this scene's encounters keep there), and the battle is told where it's kept, for its live turns.
    */
   applyPlannerSettings(spec, settings, { roster, resolved, setup }) {
     const plan = this.#conflict({ roster, resolved, setup, leaderId: spec.command?.friendly?.[0]?.id ?? null });
@@ -433,14 +433,9 @@ export class IronswornAdapter extends SystemAdapter {
     });
   }
 
-  /** The encounter's track, for Make it So's confirmation. */
+  /** The encounter's track, for the planner's summary of a fight. */
   describeEncounter(spec, replay) {
     return describeEncounterTrack(spec.options?.system, replay);
-  }
-
-  /** The encounter's track, written on the character who keeps it. */
-  async commitEncounter(spec, replay, options) {
-    return commitEncounterTrack(spec.options?.system, replay);
   }
 
   get supportsLive() {
@@ -496,10 +491,6 @@ export class IronswornAdapter extends SystemAdapter {
 
   resourceLabel(key) {
     return key === "momentum" ? game.i18n.localize("FFIRONSWORN.Momentum") : null;
-  }
-
-  async commitOutcome(tokenDoc, spec, final, options) {
-    return commitIronswornOutcome(tokenDoc, spec, final, options);
   }
 
   describeOutcome(spec, final) {

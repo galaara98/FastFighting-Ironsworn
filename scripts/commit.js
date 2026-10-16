@@ -1,8 +1,9 @@
 /**
- * Ironsworn and Starforged "Make it So": write one simulated outcome onto a token's actor, returning an undo record.
- * A character: health, spirit, momentum, a wound marked, shaken, and how it ended up (out cold, dying, dead). A foe:
- * progress marked on its track (the fight's harm, by its rank), the track completed when it was beaten, and its token
- * marked defeated; on one track for the encounter, that track instead, kept on one of the characters.
+ * Ironsworn and Starforged live battles: each turn's changes written onto a token's actor, returning an undo record.
+ * A character: health, spirit, momentum, a wound marked, shaken, and how it ended up (out cold, dead). A foe: progress
+ * marked on its track (the turn's harm, by its rank), the track completed when it was beaten, and its token marked
+ * defeated; on one track for the encounter, that track instead, kept on one of the characters. Also: what was given up
+ * to end a standoff, and (for the planner's summary) what a fight changes.
  *
  * Undo record shape (consumed by the core's make-it-so.js):
  *   { tokenUuid, actorUuid, actorUpdate, itemUpdates: [{id, update}], createdItems: [id], deletedItems: [data],
@@ -47,9 +48,9 @@ function sharedSupply() {
 }
 
 /**
- * What was given up to end a standoff (Make it So). Supply, a character's payment: its friendly side shares it, so
- * every character on the giver's side has that much less; with the system's shared Supply, so does every character
- * and starship it shares Supply with. Ground given, a foe's: progress marked on its own track, by its rank.
+ * What was given up to end a standoff. Supply, a character's payment: its friendly side shares it, so every character
+ * on the giver's side has that much less; with the system's shared Supply, so does every character and starship it
+ * shares Supply with. Ground given, a foe's: progress marked on its own track, by its rank.
  * @param {TokenDocument} giverDoc
  * @param {TokenDocument|null} receiverDoc
  * @param {object} concession   {kind: "money" (Supply) | "progress", amount}
@@ -100,7 +101,7 @@ export function encounterTrack(actor, sceneId) {
 
 const rankName = rank => game.i18n.localize(`IRONSWORN.CHALLENGERANK.${RANK_KEYS[rank] ?? "Dangerous"}`);
 
-/** The encounter's track, for Make it So's confirmation: {title, lines}, or null when nothing changes on it. */
+/** The encounter's track, for the planner's summary of a fight: {title, lines}, or null when nothing changes on it. */
 export function describeEncounterTrack(plan, replay) {
   if ( plan?.mode !== "encounter" || !plan.holderTokenId ) return null;
   const p = trackProgress(plan, replay);
@@ -109,35 +110,6 @@ export function describeEncounterTrack(plan, replay) {
   if ( p.achieved ) lines.push(t("Conflict.Achieved"));
   else if ( p.lost ) lines.push(t("Conflict.Lost"));
   return { title: t("Conflict.Record"), lines };
-}
-
-/**
- * The encounter's track, written on the character who keeps it: the one it keeps for this scene's encounters, else a
- * new one (named for the scene, at the encounter's rank); completed when the objective was achieved. Returns undo
- * records.
- */
-export async function commitEncounterTrack(plan, replay) {
-  if ( plan?.mode !== "encounter" || !plan.holderTokenId ) return [];
-  const tokenDoc = canvas.scene?.tokens.get(plan.holderTokenId);
-  const actor = tokenDoc?.actor;
-  if ( !actor ) return [];
-  const p = trackProgress(plan, replay);
-  if ( p.after === p.before && !p.achieved && !p.lost ) return [];
-  const undo = emptyRecord(tokenDoc, actor);
-  const existing = (plan.trackId ? actor.items.get(plan.trackId) : null) ?? encounterTrack(actor, canvas.scene?.id);
-  if ( existing ) {
-    undo.itemUpdates.push({ id: existing.id, update: { "system.current": existing.system.current ?? 0, "system.rank": existing.system.rank, "system.completed": !!existing.system.completed } });
-    await existing.update({ "system.current": p.after, "system.rank": p.rank, "system.completed": p.achieved });
-  } else {
-    const [item] = await actor.createEmbeddedDocuments("Item", [{
-      type: "progress",
-      name: t("Conflict.TrackName", { scene: canvas.scene?.name ?? "" }),
-      system: { subtype: "progress", rank: p.rank, current: p.after, completed: p.achieved, hasTrack: true },
-      flags: { [MODULE]: { encounter: canvas.scene?.id ?? null } }
-    }]);
-    if ( item ) undo.createdItems.push(item.id);
-  }
-  return [undo];
 }
 
 /**
@@ -195,7 +167,7 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
  * A live battle: one turn's changes (the core's engine/changes.js) written onto a token. A character: health, and
  * spirit, momentum, a wound, shaken as the turn moved them (options.before); out cold, dead. A foe: the progress marked
  * on its track this turn, the track completed when it was beaten, its token defeated.
- * @returns {Promise<object>} an undo record (as commitIronswornOutcome's)
+ * @returns {Promise<object>} an undo record (its shape above)
  */
 export async function commitIronswornChanges(tokenDoc, spec, changes, final, options = {}) {
   const actor = tokenDoc.actor;
@@ -248,7 +220,7 @@ export async function commitIronswornChanges(tokenDoc, spec, changes, final, opt
   return undo;
 }
 
-/** Human-readable list of what will change, for the confirmation dialog. */
+/** Human-readable list of what a fight changes for one creature, for the planner's summary of a fight. */
 export function describeIronswornOutcome(spec, final) {
   const lines = [];
   const s = final.system ?? {};
@@ -265,7 +237,7 @@ export function describeIronswornOutcome(spec, final) {
   }
   const before = ticks(spec.hp.value);
   const after = ticks(final.hp);
-  // (On one track for the encounter, its progress is the encounter's: Make it So writes it once, on its keeper.)
+  // (On one track for the encounter, its progress is the encounter's: shown once, as that track's.)
   if ( !spec.sharedHp && after > before && after < TRACK ) lines.push(t("Out.Progress", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
   // Beaten: however the table decides; killed, by one who would kill.
   if ( final.status === STATUS.BEATEN ) lines.push(spec.sharedHp ? t("Out.Defeated") : t("Out.Beaten", { n: Math.floor(after / 4) }));
@@ -280,59 +252,4 @@ async function setStatus(actor, id, active, undo, { overlay = false } = {}) {
   if ( statusesOf(actor).has(id) === active ) return;
   await actor.toggleStatusEffect(id, { active, overlay });
   undo.statuses.push({ id, active: !active, overlay });
-}
-
-/**
- * @param {TokenDocument} tokenDoc
- * @param {object} spec
- * @param {object} final
- * @param {object} options  {fledMode}
- */
-export async function commitIronswornOutcome(tokenDoc, spec, final, options = {}) {
-  const actor = tokenDoc.actor;
-  const undo = emptyRecord(tokenDoc, actor);
-  const s = final.system ?? {};
-  if ( spec.mover ) {
-    const update = {};
-    const set = (path, value) => {
-      const before = foundry.utils.getProperty(actor, path);
-      if ( before === value ) return;
-      update[path] = value;
-      undo.actorUpdate[path] = before ?? 0;
-    };
-    set("system.health.value", Math.max(0, final.hp));
-    if ( Number.isFinite(s.spirit) ) set(meterPath(actor, "spirit"), Math.max(0, s.spirit));
-    if ( Number.isFinite(s.momentum) ) set("system.momentum.value", s.momentum);
-    if ( s.wounded ) set("system.debility.wounded", true);
-    if ( s.shaken ) set("system.debility.shaken", true);
-    if ( final.status === STATUS.DEAD ) await setStatus(actor, "dead", true, undo, { overlay: true });
-    else if ( final.status === STATUS.DOWN ) await setStatus(actor, "unconscious", true, undo);
-    if ( Object.keys(update).length ) await actor.update(update);
-    return undo;
-  }
-  // A foe: its track, as the fight left it. (On one track for the encounter: that one, written once, on its keeper.)
-  const track = spec.sharedHp ? null : actor.items.get(spec.progressItemId);
-  if ( track ) {
-    const marked = ticks(final.hp);
-    const change = {};
-    if ( marked !== track.system.current ) change["system.current"] = Math.max(track.system.current ?? 0, marked);
-    if ( [STATUS.DEAD, STATUS.BEATEN].includes(final.status) && !track.system.completed ) change["system.completed"] = true;
-    if ( Object.keys(change).length ) {
-      undo.itemUpdates.push({ id: track.id, update: { "system.current": track.system.current ?? 0, "system.completed": !!track.system.completed } });
-      await track.update(change);
-    }
-  }
-  // Killed: dead. Beaten: out of the encounter (defeated), however the table decides.
-  if ( final.status === STATUS.DEAD || final.status === STATUS.BEATEN ) {
-    if ( final.status === STATUS.DEAD ) await setStatus(actor, "dead", true, undo, { overlay: true });
-    const combatant = game.combat?.getCombatantsByToken?.(tokenDoc)?.[0];
-    if ( combatant && !combatant.defeated ) {
-      await combatant.update({ defeated: true });
-      undo.combatant = { uuid: combatant.uuid, defeated: false };
-    }
-  } else if ( final.status === STATUS.FLED && options.fledMode !== "leave" ) {
-    undo.tokenUpdate = { hidden: tokenDoc.hidden };
-    await tokenDoc.update({ hidden: true });
-  }
-  return undo;
 }

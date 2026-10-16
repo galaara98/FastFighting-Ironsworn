@@ -76,7 +76,7 @@ describe("one track for the encounter", () => {
     expect(won + lost).toBeGreaterThan(20);
   });
 
-  test("the track's progress, for Make it So: the fight's ticks, and a mark for each success in words", () => {
+  test("the track's progress, for the planner's summary: the fight's ticks, and a mark for each success in words", () => {
     const plan = { mode: "encounter", rank: 2, before: 8, foeIds: ["a", "b"], friendly: "friendly" };
     const done = { units: { a: { final: { hp: 0 } }, b: { final: { hp: 0 } } }, log: [{ type: "end", winners: ["friendly"] }] };
     expect(trackProgress(plan, done)).toMatchObject({ before: 8, after: 40, achieved: true, lost: false });

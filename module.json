@@ -1,8 +1,8 @@
 {
   "id": "fast-fighting-ironsworn",
   "title": "FastFighting Ironsworn",
-  "description": "Ironsworn and Starforged support for FastFighting Core: reads foundry-ironsworn characters (stats, health, momentum, wounds, who has the initiative) and foes (their progress tracks and ranks, and what they are), plays the combat moves the characters make (Enter the Fray, Strike, Clash, End the Fight or Take Decisive Action, Pay the Price, Endure Harm, Face Death, burning momentum), and commits outcomes back with Make it So.",
-  "version": "0.2.1",
+  "description": "Ironsworn and Starforged support for FastFighting Core: reads foundry-ironsworn characters (stats, health, momentum, wounds, who has the initiative) and foes (their progress tracks and ranks, and what they are), plays the combat moves the characters make (Enter the Fray, Strike, Clash, End the Fight or Take Decisive Action, Pay the Price, Endure Harm, Face Death, burning momentum), and writes live battles' turns back onto the sheets.",
+  "version": "0.2.6",
   "authors": [
     {
       "name": "galaara98",
@@ -29,7 +29,7 @@
         "type": "module",
         "manifest": "https://github.com/galaara98/FastFighting/releases/latest/download/module.json",
         "compatibility": {
-          "minimum": "0.2.1"
+          "minimum": "0.2.6"
         }
       }
     ]
@@ -49,7 +49,7 @@
   ],
   "url": "https://github.com/galaara98/FastFighting-Ironsworn",
   "manifest": "https://github.com/galaara98/FastFighting-Ironsworn/releases/latest/download/module.json",
-  "download": "https://github.com/galaara98/FastFighting-Ironsworn/releases/download/v0.2.1/module.zip",
+  "download": "https://github.com/galaara98/FastFighting-Ironsworn/releases/download/v0.2.6/module.zip",
   "bugs": "https://github.com/galaara98/FastFighting-Ironsworn/issues",
   "readme": "https://github.com/galaara98/FastFighting-Ironsworn/blob/main/README.md",
   "license": "LICENSE"

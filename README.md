@@ -4,7 +4,7 @@
 > - **Programming:** I am a skilled programmer by profession, but AI was used heavily as a co-pilot.
 > - **Strings:** ALL initial strings were created by AI. An AI-made Spanish translation was used to test localization and has since been removed.
 
-Ironsworn and Starforged support for [FastFighting Core](https://github.com/galaara98/FastFighting), the Foundry VTT module that simulates a fight (or a tense standoff) thousands of times, tells the story of one fair draw, and commits it to the tokens with **Do it For Real Now**.
+Ironsworn and Starforged support for [FastFighting Core](https://github.com/galaara98/FastFighting), the Foundry VTT module that simulates a fight (or a tense standoff) thousands of times, tells the story of one fair draw, and plays it for real on the Combat Tracker, a turn at a time, with **Do it For Real Now**.
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
@@ -155,12 +155,13 @@ With more than one ruleset on in the world, Ironsworn, Starforged and Sundered I
 
 ## Do it For Real Now
 
+In a live battle, each turn's changes go onto the sheets as the turn is played:
 - A character: health, spirit, momentum, a wound or shaken marked, and how it ended (out cold, dying, dead, or deathbound after Face Death).
 - One track for the encounter: its progress, on the sheet of the character who keeps it (completed when the objective is achieved); the foes' own tracks are left as they were.
 - A foe: progress marked on its track, the track completed when it was beaten (and its token marked defeated); a foe that fled is hidden.
 - Supply paid: lowered for every character on the payer's side, and (with the system's Shared Supply Tracker on, as it is by default) every character and starship it shares Supply with. Ground given: a mark of progress on the foe's track.
 
-Rewind This Encounter puts it all back.
+Rewind Turn takes one turn back; Rewind This Encounter, all of it.
 
 ## Development
 

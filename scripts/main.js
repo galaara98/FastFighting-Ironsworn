@@ -1,7 +1,7 @@
 /**
  * FastFighting Ironsworn: teaches FastFighting Core how Ironsworn and Starforged fight. Registers the
- * foundry-ironsworn adapter (characters and foes, the moves and their dice, personality defaults, leadership, Make it
- * So) through the core's public API.
+ * foundry-ironsworn adapter (characters and foes, the moves and their dice, personality defaults, leadership, live
+ * battles) through the core's public API.
  */
 import { IronswornAdapter } from "./adapter.js";
 import { registerLoreBoost } from "./lore.js";
@@ -15,7 +15,7 @@ const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
  * The core API this helper is written against (its system hooks for dice and moves of their own; its own answers to the
  * tactics questions, with their reasons, and what a character offers and expects).
  */
-const NEEDS_API = 14;
+const NEEDS_API = 15;
 
 /**
  * The last translation module we knew of for this game system, by language: in a language other than English, this
