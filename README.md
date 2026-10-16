@@ -72,6 +72,7 @@ The characters make the moves, as in the game; foes never roll.
 - **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank. A strong hit: +1 momentum. A miss pays the price: a refusal that weighs on the character (Endure Stress, 1); a miss on matching dice is also a demand that costs it dearly (a point of supply, to whoever it was talking to).
 - **Stress:** a horror's price is dread (Endure Stress, its rank) rather than harm. **Endure Stress** plays as Endure Harm does, on spirit (+spirit or +heart): a strong hit shakes it off or embraces the darkness (+1 momentum); a weak hit presses on; a miss costs momentum (Starforged: worse than it seemed). At 0 spirit a miss marks the character shaken; already shaken, it may falter (-1 momentum) or be overwhelmed: Face Desolation (+heart), and on a miss it gives up the fight.
 - **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise; a foe can ask for Supply (as a raider would), but has none to give.
+- **Breaking free, and freeing a friend:** a character tied up or held breaks free with **Face Danger**, using the better of +edge (slipping out) and +iron (forcing it). A strong hit gets it free (+1 momentum); a weak hit gets it free at a cost (-1 momentum); a miss leaves it held and pays the price (-1 momentum, and the upper hand lost). Momentum is burned only to turn a miss into a hit. Untying a friend takes no roll, unless a foe is beside the one untying: then it's Face Danger too. Either takes the turn's move. Foes don't roll: whether one gets loose is the core's chance.
 
 ## Playstyles in Ironsworn
 
@@ -103,6 +104,7 @@ Tactics answers:
 - A foe's provocation as Face Danger (+heart).
 - Theft as Face Danger (+shadow), and what a hit takes.
 - A hazard's Face Danger (+edge), and a weak hit's cost.
+- Breaking free as Face Danger (+edge or +iron), and untying a friend with no roll unless a foe is beside it.
 - Heal in a fight only for one in control, and +wits for its own wounds too (the books say the lower of wits and iron).
 - End the Fight two boxes sooner for one in a hurry.
 - +shadow in the fray for one keeping a low profile.

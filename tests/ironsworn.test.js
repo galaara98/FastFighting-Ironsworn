@@ -3,7 +3,8 @@ import { grade, scoreChances, chances, harmTable, movesFor, TICKS } from "../scr
 import { ironswornRules, progressScore } from "../scripts/rules.js";
 import { characterMoves, foeNumbers, advantageMoves, loreSizeUp } from "../scripts/build.js";
 import { deriveIronswornTraits, natureOf, speaks } from "../scripts/traits.js";
-import { replay, runBatchSync } from "../../FastFighting/scripts/engine/simulator.js";
+import { replay, runBatchSync, beginRun, beginRound, takeTurn, prepareBattle } from "../../FastFighting/scripts/engine/simulator.js";
+import { holdsOf, tryHold, isBound, escapeCost, untieCost } from "../../FastFighting/scripts/engine/behavior/holds.js";
 import { createRng } from "../../FastFighting/scripts/engine/rng.js";
 import { text } from "./foundry-i18n.js";
 
@@ -279,5 +280,102 @@ describe("a Lore-Collector in Ironsworn", () => {
     }
     expect(boostedAfterHit).toBeGreaterThan(0);
     expect(prices).toBeGreaterThan(0);
+  });
+});
+
+describe("breaking free, and freeing a friend", () => {
+  /** A fight a round in, its log kept. */
+  const begun = (list, seed = 1) => {
+    const run = beginRun(prepareBattle(fight(list), ironswornRules), seed, { log: true });
+    beginRound(run, 1);
+    return run;
+  };
+  /** Dice that come up as given (the d6, then the two challenge dice). */
+  const dice = (...values) => ({ ...createRng(1), die: () => values.shift() });
+  const tie = u => Object.assign(u, { bound: true, boundBy: null, status: "bound" });
+  const bonds = { key: "bound", others: "untie" };
+  const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
+
+  test("a character Faces Danger to get loose: a strong hit +1 momentum, a weak hit at a cost, a miss pays the price", () => {
+    const run = begun([hero({ stats: { edge: 3, heart: 1, iron: 1, shadow: 1, wits: 1 } }), foe()]);
+    const kara = Object.assign(run.byId.get("kara"), { control: true });
+    const stat = text("FFIRONSWORN.Stat.edge");
+    run.rng = dice(4, 2, 5);
+    expect(ironswornRules.breakFree(run, kara, bonds)).toEqual({ success: true, degree: 3, said: { text: roll("Strong", { stat, total: 7, dice: "2, 5" }), data: expect.objectContaining({ stat: "edge", degree: 3 }) } });
+    expect(kara.resources.momentum).toBe(3);
+    run.rng = dice(1, 2, 6);
+    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ success: true, degree: 2, said: { text: roll("Weak", { stat, total: 4, dice: "2, 6" }) } });
+    expect(kara.resources.momentum).toBe(2);
+    run.rng = dice(1, 7, 9);
+    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ success: false, degree: 1, said: { text: roll("Miss", { stat, total: 4, dice: "7, 9" }) } });
+    expect([kara.resources.momentum, kara.control]).toEqual([1, false]);
+  });
+
+  test("the better of +edge (slipping out, first for bonds) and +iron (forcing it, first for a grab); no d20 against a DC", () => {
+    const run = begun([hero({ stats: { edge: 2, heart: 1, iron: 2, shadow: 1, wits: 1 } }), hero({ id: "bran", stats: { edge: 1, heart: 1, iron: 3, shadow: 1, wits: 1 } }), foe()]);
+    const stat = (u, hold) => ironswornRules.breakFree(run, run.byId.get(u), hold).said.data.stat;
+    expect([stat("kara", bonds), stat("kara", { key: "grabbed", others: null }), stat("bran", bonds)]).toEqual(["edge", "iron", "iron"]);
+    const got = ironswornRules.breakFree(run, run.byId.get("kara"), bonds);
+    expect([got.natural, got.mod, got.total, got.dc]).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  test("momentum is burned to turn a miss into a hit, never a weak hit into a strong one", () => {
+    const run = begun([hero({ stats: { edge: 2, heart: 1, iron: 1, shadow: 1, wits: 1 }, momentum: 8 }), foe()]);
+    const kara = run.byId.get("kara");
+    run.rng = dice(1, 5, 9);
+    const got = ironswornRules.breakFree(run, kara, bonds);
+    expect(got).toMatchObject({ success: true, degree: 2, said: { data: { burned: 8 } } });
+    expect(got.said.text).toContain(text("FFIRONSWORN.Burn.Weak", { n: 8, label: move("FaceDanger") }));
+    expect(kara.resources.momentum).toBe(1); // (reset to 2, then the weak hit's cost)
+    kara.resources.momentum = 9;
+    run.rng = dice(3, 3, 7);
+    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ degree: 2, said: { data: { burned: 0 } } });
+    expect(kara.resources.momentum).toBe(8);
+  });
+
+  test("a character tied up struggles on its turn by Face Danger; a foe doesn't roll (the core's chance)", () => {
+    for ( let seed = 1; seed <= 5; seed++ ) {
+      const run = begun([hero(), foe()], seed);
+      const kara = tie(run.byId.get("kara"));
+      takeTurn(run, kara);
+      const e = run.log.find(l => l.type === "escape" && l.actorId === "kara");
+      expect(e).toMatchObject({ hold: "bound", said: expect.stringContaining(move("FaceDanger")) });
+      expect(e.natural).toBeUndefined();
+      expect([kara.status === "bound", isBound(kara)]).toEqual([!e.success, !e.success]);
+    }
+    const run = begun([hero(), foe()]);
+    const raider = tie(run.byId.get("raider"));
+    expect(ironswornRules.breakFree(run, raider, bonds)).toBe(null);
+    takeTurn(run, raider);
+    const e = run.log.find(l => l.type === "escape" && l.actorId === "raider");
+    expect(e).toMatchObject({ hold: "bound" });
+    expect([e.said, e.degree]).toEqual([undefined, undefined]);
+  });
+
+  test("untying a friend: no move with no foe beside (the core's untie, no roll); with one, Face Danger", () => {
+    const run = begun([hero(), hero({ id: "bran" }), foe()]);
+    const kara = run.byId.get("kara");
+    const bran = tie(run.byId.get("bran"));
+    const hold = holdsOf(run, bran)[0];
+    expect(hold).toMatchObject({ key: "bound", others: "untie" });
+    expect(ironswornRules.breakFree(run, kara, hold, { freeing: true })).toBe(null);
+    expect(tryHold(run, kara, hold, { freeing: true })).toEqual({ success: true });
+    kara.adjacent.add("raider");
+    run.rng = dice(4, 2, 5);
+    expect(tryHold(run, kara, hold, { freeing: true })).toMatchObject({ success: true, degree: 3, said: { data: { freeing: true } } });
+    // (What the system says a friend needs a roll for: Face Danger, foe or none.)
+    kara.adjacent.clear();
+    run.rng = dice(1, 7, 9);
+    expect(tryHold(run, kara, { key: "restrained", others: "check" }, { freeing: true })).toMatchObject({ success: false, degree: 1 });
+  });
+
+  test("a try is the turn's one move; debilities and impacts hold no one", () => {
+    const run = begun([hero(), hero({ id: "bran" }), foe()]);
+    const [kara, bran] = ["kara", "bran"].map(id => run.byId.get(id));
+    expect(escapeCost(ironswornRules, kara, bonds)).toEqual({ action: 1 });
+    expect(untieCost(ironswornRules, kara, bran, bonds)).toEqual({ action: 1 });
+    kara.wounded = true;
+    kara.baseConds.shaken = 1;
+    expect(holdsOf(run, kara)).toEqual([]);
   });
 });

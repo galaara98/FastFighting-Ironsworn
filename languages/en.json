@@ -187,6 +187,11 @@
       "Holds": "keeps its head",
       "Rises": "rises to it",
       "Shrugs": "rises to it, then shrugs it off"
+    },
+    "Hold": {
+      "Strong": "+1 momentum",
+      "Weak": "at a cost (-1 momentum)",
+      "Miss": "{price} (-1 momentum, {control})"
     }
   }
 }

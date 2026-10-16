@@ -11,6 +11,8 @@
  * nothing much. With the foe's progress far enough along, a character in control may End the Fight (Starforged: Take
  * Decisive Action), a progress roll: a hit ends that foe's part in the fight; a miss loses it, and the price is paid.
  * Momentum is burned when it turns a miss into a hit (or a weak hit into a strong one, when there's plenty).
+ * A character held (tied up, grabbed) breaks free by Face Danger (+edge or +iron); untying a friend is no move unless
+ * a foe is beside it.
  *
  * Spirit: horrors' price is stress (Endure Stress, on spirit, as Endure Harm is on health; at 0 spirit, shaken, then
  * the stress table, where Face Desolation may make it give up the fight). Talking is Compel: a strong hit +1 momentum;
@@ -513,6 +515,38 @@ export const ironswornRules = {
     return rng.die(10) >= 6;
   },
 
+  /* Holds ----------------------------------------------------------------- */
+  /**
+   * Breaking free (of bonds, a grab, anything an action breaks), or freeing a friend: Face Danger, with the better of
+   * +edge (slipping out, working the knots; first for bonds) and +iron (forcing it; first for a grab). A strong hit gets
+   * free, +1 momentum; a weak hit gets free at a cost (-1 momentum); a miss is still held, and pays the price (-1
+   * momentum, the upper hand lost). Momentum is burned to turn a miss into a hit, never a weak hit into a strong one
+   * (that would only spare a point). Untying a friend with no foe beside it is no move at all: the core's untie, no
+   * roll; with one, it's risky, and Face Danger. Foes don't roll: their struggle is the core's chance (null).
+   * No DC and no d20: the roll's numbers are in its words. (Debilities and impacts hold no one, so there's no
+   * escapeFrom; a try is the turn's one move, the core's default cost.)
+   */
+  breakFree(run, who, hold, { freeing = false } = {}) {
+    if ( !isMover(who) ) return null;
+    if ( freeing && hold.others === "untie" && !foeBeside(run, who) ) return null;
+    const m = movesOf(who);
+    const stats = who.spec.stats ?? {};
+    const stat = (hold.key === "grabbed" ? ["iron", "edge"] : ["edge", "iron"]).reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
+    const label = moveName("FaceDanger");
+    const first = actionRoll(run.rng, stats[stat] ?? 1);
+    const roll = first.degree <= 1 ? ironswornRules.adjustRoll(run, who, first, { kind: "check", label }) : first;
+    // (A strong hit, +1 momentum; a weak hit's cost and a miss's price, -1; a miss loses the upper hand too.)
+    if ( roll.degree === 3 ) setMomentum(who, momentumOf(who) + 1);
+    else setMomentum(who, momentumOf(who) - 1);
+    if ( roll.degree <= 1 ) who.control = false;
+    const what = roll.degree === 3 ? t("Hold.Strong") : roll.degree === 2 ? t("Hold.Weak") : t("Hold.Miss", { price: m.price.name, control: m.control.off });
+    const line = t("MoveRoll", { move: label, stat: statName(stat), total: first.total, dice: first.challenge.join(", "), what });
+    return {
+      success: roll.degree >= 2, degree: roll.degree,
+      said: { text: roll.said ? `${line} · ${roll.said.text}` : line, data: { move: "faceDanger", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree, burned: roll.burned ?? 0, freeing } }
+    };
+  },
+
   /* What's typical, by rank -------------------------------------------- */
   typical: {
     ac: () => BASE_DC,
@@ -604,6 +638,13 @@ export const ironswornRules = {
 
 /** The party's side: the characters'. */
 const PARTY = "friendly";
+
+/** A foe beside it, still fighting (close in a fight, or within 5 feet on a map). */
+function foeBeside(run, u) {
+  const enemies = run.prep.sides[u.side]?.enemies ?? new Set();
+  const near = o => u.adjacent?.has(o.id) || (!!run.prep.options.positioning && (edgeDistance(u, o) ?? Infinity) <= 5);
+  return run.units.some(o => enemies.has(o.side) && isStanding(o) && near(o));
+}
 
 /**
  * Pay the Price: "a friend is put in harm's way" (one of the books' own prices). Who: a friend whose taunt that foe is
