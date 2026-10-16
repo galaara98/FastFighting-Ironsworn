@@ -8,7 +8,7 @@ Ironsworn and Starforged support for [FastFighting Core](https://github.com/gala
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core (API 16)
+- **Needs:** FastFighting Core (API 17)
 
 ## Installation
 

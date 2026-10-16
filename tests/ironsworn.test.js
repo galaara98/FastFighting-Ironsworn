@@ -108,6 +108,11 @@ describe("a fight", () => {
           if ( made(e, "Strike") || made(e, "Clash") ) control = e.degree === 3;
           if ( made(e, "EndtheFight") ) control = e.degree >= 2;
         }
+        // (Heal, only in control: a miss pays the price, the upper hand with it.)
+        if ( e.actor === "kara" && e.type === "heal" ) {
+          expect(control).toBe(true);
+          if ( (e.check?.degree ?? 2) <= 1 ) control = false;
+        }
         if ( e.type === "backlash" ) prices += 1;
         if ( e.type === "endure" ) endured += 1;
       }
