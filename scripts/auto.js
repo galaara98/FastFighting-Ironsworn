@@ -152,7 +152,7 @@ const FOE_TACTICS = Object.freeze({
   raider: { talk: "first", retreat: "never", beyond: "hunt", expect: "money" },
   warrior: { target: "protect", retreat: "losing" }, zealot: { talk: "first", retreat: "never" },
   elf: { talk: "opportune", expect: "leave" },
-  giant: { talk: "first", target: "avoidKilling", offer: "noHarm", expect: "leave" },
+  giant: { talk: "first", fallen: "spare", offer: "noHarm", expect: "leave" },
   primordial: { talk: "never" }, troll: { talk: "never", retreat: "hurt", allyDying: "retreat" },
   varou: { allyDying: "rescue", expect: "leave" }, merrow: { talk: "never", retreat: "never" },
   wolf: { target: "weakest", beyond: "hunt" }, bear: { retreat: "hurt" }, boar: { retreat: "never" },

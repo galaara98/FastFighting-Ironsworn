@@ -222,7 +222,7 @@ describe("a foe's answers, from what it is", () => {
 
   test("a giant would rather talk: it spares lives, offers peace and wants you gone", () => {
     expect(values(foe("npc:classic/firstborn/giant", "firstborn", "Giant", 4)))
-      .toEqual({ talk: "first", target: "avoidKilling", offer: { kind: "noHarm" }, expect: { kind: "leave" } });
+      .toEqual({ talk: "first", fallen: "spare", offer: { kind: "noHarm" }, expect: { kind: "leave" } });
   });
 
   test("people its system says nothing about: everything left to its own reading; no words, nothing to bargain", () => {
