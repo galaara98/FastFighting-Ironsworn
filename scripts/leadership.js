@@ -1,6 +1,7 @@
 /**
  * Ironsworn leadership: a character's heart (those who inspire, lead), a foe's rank and a title. Pure.
  */
+import { listItems } from "./core.js";
 import { t } from "./words.js";
 const TITLE = /\b(?:chief(?:tain)?|captain|commander|warlord|leader|elder|queen|king|lord|lady|boss|warden|overseer)\b/i;
 
@@ -19,7 +20,7 @@ export function rankIronswornLeaders(entries) {
       score += 2;
       reasons.push(t("Lead.Title"));
     }
-    out.push({ id: e.id, score, reason: reasons.join("; "), bonus: leaderBonus(score) });
+    out.push({ id: e.id, score, reason: listItems(reasons), bonus: leaderBonus(score) });
   }
   return out.sort((a, b) => b.score - a.score);
 }

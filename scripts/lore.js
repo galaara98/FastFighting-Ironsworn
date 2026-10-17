@@ -10,29 +10,16 @@
  * odds start low.
  */
 
+import { numberSetting } from "./core.js";
+
 export const LORE_BOOST = Object.freeze({ min: 1.25, max: 3, step: 0.05, default: 2.35 });
-const MODULE_ID = "fast-fighting-ironsworn";
+
+const setting = numberSetting("fast-fighting-ironsworn", "loreBoost", {
+  ...LORE_BOOST, name: "FFIRONSWORN.Settings.loreBoost.Name", hint: "FFIRONSWORN.Settings.loreBoost.Hint"
+});
 
 /** Register the setting (on init). */
-export function registerLoreBoost() {
-  game.settings.register(MODULE_ID, "loreBoost", {
-    name: "FFIRONSWORN.Settings.loreBoost.Name",
-    hint: "FFIRONSWORN.Settings.loreBoost.Hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    range: { min: LORE_BOOST.min, max: LORE_BOOST.max, step: LORE_BOOST.step },
-    default: LORE_BOOST.default
-  });
-}
+export const registerLoreBoost = setting.register;
 
 /** The world's setting, within its bounds (the default if there's none to read). */
-export function loreBoost() {
-  let v = LORE_BOOST.default;
-  try {
-    v = Number(game.settings.get(MODULE_ID, "loreBoost"));
-  } catch ( err ) {
-    return LORE_BOOST.default;
-  }
-  return Number.isFinite(v) && v > 0 ? Math.min(LORE_BOOST.max, Math.max(LORE_BOOST.min, v)) : LORE_BOOST.default;
-}
+export const loreBoost = setting.read;

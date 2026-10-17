@@ -161,19 +161,12 @@
       "Momentum": "Momentum {from} → {to}",
       "Burned": " (burned {n}×)",
       "Wounded": "Wounded",
-      "Dies": "DIES",
       "Deathbound": "Survives Face Death, bound to a deathbound quest; out cold",
       "Cold": "Out cold",
       "Dying": "Dying: needs healing within an hour or two, or Face Death",
-      "Retreated": "Retreated from the fight",
       "Beaten": "Beaten: track complete ({n}/10)",
       "Defeated": "Beaten (the encounter's track)",
-      "Killed": "Killed",
-      "Progress": "Progress {from}/10 → {to}/10 ({n} ticks)",
-      "TalkedAway": "Talked into leaving (token hidden)",
-      "Fled": "Fled (token hidden)",
-      "Surrenders": "Surrenders",
-      "StandsDown": "Stands down"
+      "Progress": "Progress {from}/10 → {to}/10 ({n} ticks)"
     },
     "Gives": {
       "Next": "{n} on the next move",

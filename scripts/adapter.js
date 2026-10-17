@@ -18,7 +18,7 @@
  * The encounter (the planner's Ironsworn section, conflict.js): one track for it (Starforged's objective, at the rank
  * the GM gives it, kept on one of the characters) or each foe's own (Ironsworn's).
  */
-import { SystemAdapter, hasWords, localize } from "./core.js";
+import { SystemAdapter, hasWords, localize, plainText } from "./core.js";
 import { ironswornRules, DEBILITIES, DEBILITY_KEYS } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp, doorWork } from "./build.js";
 import { loreBoost } from "./lore.js";
@@ -29,7 +29,7 @@ import { commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, 
 import { readIronswornTurn } from "./read-turn.js";
 import { TRACK_MODES, RANK_KEYS, DOOR_HARM, defaultMode, defaultRank, rankOf, joinEncounter, doorHarmOf, doorsFor } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
-import { ironswornHints, ironswornTactics, abilityMoves, assetKey, rangedAsset, healerAsset, plainText, characterBiography, foeBiography } from "./auto.js";
+import { ironswornHints, ironswornTactics, abilityMoves, assetKey, rangedAsset, healerAsset, characterBiography, foeBiography } from "./auto.js";
 
 /** The rulesets on in the world (the system's "ruleset-..." settings). */
 const RULESET_KEYS = ["classic", "starforged", "sundered_isles"];

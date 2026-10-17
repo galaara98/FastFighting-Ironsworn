@@ -14,9 +14,10 @@ const PREFERENCES = ["sheet", "classic", "starforged", "sundered_isles"];
 
 /**
  * The core API this helper is written against (its system hooks for dice and moves of their own; its own answers to the
- * tactics questions, with their reasons, and what a character offers and expects).
+ * tactics questions, with their reasons, and what a character offers and expects; the sheet tools and outcome lines every
+ * helper shares).
  */
-const NEEDS_API = 17;
+const NEEDS_API = 18;
 
 /**
  * The last translation module we knew of for this game system, by language: in a language other than English, this
@@ -73,9 +74,9 @@ Hooks.once("fastFighting.init", api => {
     return;
   }
   api.registerAdapter("foundry-ironsworn", IronswornAdapter, { priority: 10, source: MODULE_ID });
-  api.adviseTranslation?.(MODULE_ID, game.system.title, KNOWN_TRANSLATIONS);
+  api.adviseTranslation(MODULE_ID, game.system.title, KNOWN_TRANSLATIONS);
   // Words kept in English for now, while the system isn't translated (hardcoded-toEN.json).
-  api.keepEnglish?.(MODULE_ID);
+  api.keepEnglish(MODULE_ID);
 });
 
 /** The rules preference as pills: one click, one on at a time (the setting's own select, hidden, keeps the value). */

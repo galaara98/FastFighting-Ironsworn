@@ -1,12 +1,10 @@
 /**
  * Building the engine's actions and numbers for Ironsworn and Starforged characters and foes. Pure, unit-tested.
  */
-import { movesFor, TICKS, TRACK } from "./moves.js";
+import { movesFor, harm, TICKS, TRACK } from "./moves.js";
 import { LORE_BOOST } from "./lore.js";
 import { t, moveName } from "./words.js";
-import { listItems } from "./core.js";
-
-const harm = n => ({ dice: [], flat: n, type: "harm", persistent: false, category: null });
+import { listItems, part } from "./core.js";
 
 /**
  * A character's combat moves: Strike and Clash at close quarters (+iron) and, for one who fights at range, at a
@@ -58,7 +56,7 @@ export function characterMoves({ id, stats, ruleset = "classic", ranged = false,
 export function healMove({ id, stats, healer = false }) {
   return {
     id: `${id}.heal`, name: moveName("Heal"), kind: "heal", cost: 1, move: "heal", reach: 5, traits: [], special: !!healer,
-    heal: [{ dice: [], flat: 2, type: "healing", persistent: false, category: null }], healCheck: { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("Heal") }
+    heal: [part([], 2, "healing")], healCheck: { mod: Number(stats?.wits) || 1, dc: 10, label: moveName("Heal") }
   };
 }
 

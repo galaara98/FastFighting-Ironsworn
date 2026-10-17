@@ -10,7 +10,7 @@
  * compendium files it under, or its words) and its rank: the higher, the bolder. Then what its kind is like (the books'
  * drives and tactics for it), and whether it's a group.
  */
-import { clamp, listItems, traitsFromParts, PC_BASELINE, TRAITS } from "./core.js";
+import { clamp, partsOf, traitsFromParts, PC_BASELINE } from "./core.js";
 import { t, statName } from "./words.js";
 
 /* What a foe is ------------------------------------------------------------------------------------------------------ */
@@ -160,9 +160,6 @@ const CLASSIC_DEBILITY_LEANS = Object.freeze({ cursed: { brave: 2 } });
 const USUAL_VOWS = 2;
 const USUAL_VOW_RANK = 3.5;
 
-/** Parts from a leaning ({trait: n}), with the reason they're shown with. */
-const partsOf = (lean, why, scale = 1) => Object.entries(lean ?? {}).map(([trait, n]) => ({ trait, n: n * scale, why }));
-
 /** An asset's key: the last part of its id, lower case ("Shield-Bearer", from an older id, is "shield_bearer"). */
 export const assetLeanKey = id => String(id ?? "").split("/").pop().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || null;
 
@@ -242,9 +239,6 @@ export function pcParts(d) {
   return parts;
 }
 
-/** A trait's reason with more after it (the parts that moved it). */
-const joinReasons = (first, more) => Object.fromEntries(TRAITS.map(k => [k, listItems([first[k], more[k]].filter(Boolean))]));
-
 /**
  * @param {object} d
  * @param {boolean} d.pc
@@ -295,6 +289,6 @@ export function deriveIronswornTraits(d) {
     parts.push(...partsOf(FOE_LEANS[id.key], d.name || id.key));
     if ( id.variant && GROUP.test(id.variant) ) parts.push(...partsOf({ loyal: 5, brave: 5 }, t("Reason.Group")));
   }
-  const built = traitsFromParts(start, parts, { min: 0, max: 100 });
-  return { traits: built.traits, flags, reasons: joinReasons(reasons, built.reasons) };
+  const built = traitsFromParts(start, parts, { lead: reasons, min: 0, max: 100 });
+  return { traits: built.traits, flags, reasons: built.reasons };
 }

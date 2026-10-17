@@ -320,20 +320,20 @@ const dice = (...values) => ({ ...createRng(1), die: () => values.shift() });
 describe("breaking free, and freeing a friend", () => {
   const tie = u => Object.assign(u, { bound: true, boundBy: null, status: "bound" });
   const bonds = { key: "bound", others: "untie" };
-  const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
+  const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, dice: data.dice.join(text("FASTFIGHTING.Words.ListSeparator")), what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
 
   test("a character Faces Danger to get loose: a strong hit +1 momentum, a weak hit at a cost, a miss pays the price", () => {
     const run = begun([hero({ stats: { edge: 3, heart: 1, iron: 1, shadow: 1, wits: 1 } }), foe()]);
     const kara = Object.assign(run.byId.get("kara"), { control: true });
     const stat = text("FFIRONSWORN.Stat.edge");
     run.rng = dice(4, 2, 5);
-    expect(ironswornRules.breakFree(run, kara, bonds)).toEqual({ success: true, degree: 3, said: { text: roll("Strong", { stat, total: 7, dice: "2, 5" }), data: expect.objectContaining({ stat: "edge", degree: 3 }) } });
+    expect(ironswornRules.breakFree(run, kara, bonds)).toEqual({ success: true, degree: 3, said: { text: roll("Strong", { stat, total: 7, dice: [2, 5] }), data: expect.objectContaining({ stat: "edge", degree: 3 }) } });
     expect(kara.resources.momentum).toBe(3);
     run.rng = dice(1, 2, 6);
-    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ success: true, degree: 2, said: { text: roll("Weak", { stat, total: 4, dice: "2, 6" }) } });
+    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ success: true, degree: 2, said: { text: roll("Weak", { stat, total: 4, dice: [2, 6] }) } });
     expect(kara.resources.momentum).toBe(2);
     run.rng = dice(1, 7, 9);
-    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ success: false, degree: 1, said: { text: roll("Miss", { stat, total: 4, dice: "7, 9" }) } });
+    expect(ironswornRules.breakFree(run, kara, bonds)).toMatchObject({ success: false, degree: 1, said: { text: roll("Miss", { stat, total: 4, dice: [7, 9] }) } });
     expect([kara.resources.momentum, kara.control]).toEqual([1, false]);
   });
 
@@ -408,7 +408,7 @@ describe("breaking free, and freeing a friend", () => {
 
 describe("a locked door", () => {
   const stats = { edge: 1, heart: 1, iron: 3, shadow: 1, wits: 2 };
-  const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
+  const roll = (key, data) => text("FFIRONSWORN.MoveRoll", { move: move("FaceDanger"), ...data, dice: data.dice.join(text("FASTFIGHTING.Words.ListSeparator")), what: text(`FFIRONSWORN.Hold.${key}`, key === "Miss" ? { price: move("PaythePrice"), control: text("FFIRONSWORN.Control.losesinitiative") } : null) });
   /** A character, a foe beyond a door 20 feet off (the way the fight found runs through it), as the core's own tests have it. */
   const behindDoor = (over = {}, rounds = 4) => {
     const kara = hero({ stats, position: { x: 0, y: 0, size: 5 }, desires: [{ kind: "hurt", targetId: "raider", level: 90 }], ...over });
@@ -446,15 +446,15 @@ describe("a locked door", () => {
     const [iron, wits] = [text("FFIRONSWORN.Stat.iron"), text("FFIRONSWORN.Stat.wits")];
     run.rng = dice(4, 2, 5);
     expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "force", mod: 3, dc: 10 })).toEqual({
-      success: true, degree: 3, said: { text: roll("Strong", { stat: iron, total: 7, dice: "2, 5" }), data: expect.objectContaining({ move: "faceDanger", stat: "iron", method: "force", door: "d1" }) }
+      success: true, degree: 3, said: { text: roll("Strong", { stat: iron, total: 7, dice: [2, 5] }), data: expect.objectContaining({ move: "faceDanger", stat: "iron", method: "force", door: "d1" }) }
     });
     expect(kara.resources.momentum).toBe(3);
     run.rng = dice(1, 2, 6);
-    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "pick", mod: 2, dc: 10 })).toMatchObject({ success: true, degree: 2, said: { text: roll("Weak", { stat: wits, total: 3, dice: "2, 6" }) } });
+    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "pick", mod: 2, dc: 10 })).toMatchObject({ success: true, degree: 2, said: { text: roll("Weak", { stat: wits, total: 3, dice: [2, 6] }) } });
     expect(kara.resources.momentum).toBe(2);
     // (A harder door, DC 16: two adds off. 4 + 3 would beat both dice; 5 beats neither.)
     run.rng = dice(4, 5, 6);
-    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "force", mod: 3, dc: 16 })).toMatchObject({ success: false, degree: 1, said: { text: roll("Miss", { stat: iron, total: 5, dice: "5, 6" }) } });
+    expect(ironswornRules.tryDoor(run, kara, { id: "d1" }, { method: "force", mod: 3, dc: 16 })).toMatchObject({ success: false, degree: 1, said: { text: roll("Miss", { stat: iron, total: 5, dice: [5, 6] }) } });
     expect([kara.resources.momentum, kara.control]).toEqual([1, false]);
     // A foe doesn't roll: the core's.
     expect(ironswornRules.tryDoor(run, run.byId.get("raider"), { id: "d1" }, { method: "force", mod: 2, dc: 10 })).toBe(null);

@@ -10,11 +10,14 @@
  * a miss on matching dice a critical failure (0).
  */
 import { t, moveName } from "./words.js";
+import { part } from "./core.js";
 
 /** How many ticks of a 40-tick track one mark of progress fills at each challenge rank (1 troublesome ... 5 epic). */
 export const TICKS = Object.freeze({ 1: 12, 2: 8, 3: 4, 4: 2, 5: 1 });
 export const TRACK = 40;
 export const MOMENTUM = Object.freeze({ min: -6, max: 10, reset: 2 });
+/** So much harm, as the engine's damage: no dice, only the number (a foe's rank, a strike's 1 or 2). */
+export const harm = n => part([], n, "harm");
 
 /**
  * The combat moves of each ruleset the system plays, by what they do here (the moves' names are the system's own):

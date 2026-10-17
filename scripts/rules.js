@@ -34,19 +34,17 @@
  * hazard makes those it reaches Face Danger (+edge). One in a hurry takes End the Fight on sooner; how freely a
  * character uses resources says how readily it burns momentum.
  */
-import { DOWNED_MODELS, STATUS, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
-import { movesFor, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
+import { DOWNED_MODELS, STATUS, clamp, listItems, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
+import { movesFor, harm, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
 import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS, DOOR_HARM } from "./conflict.js";
 import { t, statName, moveName } from "./words.js";
 
 const BASE_DC = 10;
 /** The engine's difficulty (a DC; 10 is ordinary) as adds: a hard talk, a friendly one. */
 const addsFor = dc => (Number.isFinite(dc) ? Math.round((BASE_DC - dc) / 3) : 0);
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /** The moves a character makes: as its spec says (its ruleset's, with the world's preference), else its ruleset's. */
 const movesOf = u => u.spec.moveRules ?? movesFor(u.spec.ruleset);
 const isMover = u => !!u?.spec?.mover;
-const harm = n => [{ dice: [], flat: n, type: "harm", persistent: false, category: null }];
 
 /** A plain action roll: a d6 + mod (+ adds), at most 10, against two challenge dice. */
 function actionRoll(rng, mod, { adds = 0, progress = false } = {}) {
@@ -179,12 +177,12 @@ export const ironswornRules = {
   ownConditions: DEBILITY_KEYS,
   /** What a condition harms each turn (a fire, radiation, a gullet's acid): a point of harm, whatever it is. */
   conditionHarm() {
-    return harm(1);
+    return [harm(1)];
   },
   /** A fall: a point of harm for each 10 feet, 3 at most; there's no lying prone. */
   fallDamage(feet) {
     const n = Math.min(3, Math.floor((Number(feet) || 0) / 10));
-    return n > 0 ? harm(n) : [];
+    return n > 0 ? [harm(n)] : [];
   },
   fallProne: false,
   minimumDamage: 0,
@@ -343,8 +341,8 @@ export const ironswornRules = {
     // A horror's price is dread: stress, not harm.
     if ( target.spec.nature === "horror" && u.status === STATUS.STANDING ) return { label: movesOf(u).price.name, said: endureStress(run, u, amount, run.rng) };
     const to = harmsWay(run, u, target);
-    if ( !to ) return { label: movesOf(u).price.name, damage: harm(amount) };
-    return { label: movesOf(u).price.name, damage: harm(amount), to, said: { text: t("HarmsWay", { name: to.spec.name }), data: { move: "price", to: to.id } } };
+    if ( !to ) return { label: movesOf(u).price.name, damage: [harm(amount)] };
+    return { label: movesOf(u).price.name, damage: [harm(amount)], to, said: { text: t("HarmsWay", { name: to.spec.name }), data: { move: "price", to: to.id } } };
   },
   /**
    * Compel, for a character: a strong hit, +1 momentum; a miss pays the price, a refusal that weighs on it (Endure
@@ -380,7 +378,7 @@ export const ironswornRules = {
     const stat = Math.max(Math.max(0, u.hp), u.spec.stats?.iron ?? 1);
     const roll = actionRoll(rng, stat);
     const e = m.endure;
-    const base = t("MoveRoll", { move: e.name, stat, total: roll.total, dice: roll.challenge.join(", "), what: "" });
+    const base = t("MoveRoll", { move: e.name, stat, total: roll.total, dice: listItems(roll.challenge), what: "" });
     const data = { move: "endure", total: roll.total, challenge: roll.challenge, degree: roll.degree, harm: amount };
     if ( roll.degree === 3 ) {
       const can = u.hp < u.maxHp && (e.shakeCost ? u.hp > 0 && momentumOf(u) - e.shakeCost >= resetOf(u) : !u.wounded);
@@ -660,7 +658,6 @@ export const ironswornRules = {
     };
   },
 
-  secondsPerRound: 6,
   /** A hero whose answer is "retreat when hurt" does so at 0 health: before that, it fights on. */
   retreatAt: 0.01,
 
@@ -700,7 +697,7 @@ function faceDanger(run, who, stat, { mod = null, adds = 0, data = {} } = {}) {
   else setMomentum(who, momentumOf(who) - 1);
   if ( roll.degree <= 1 ) who.control = false;
   const what = roll.degree === 3 ? t("Hold.Strong") : roll.degree === 2 ? t("Hold.Weak") : t("Hold.Miss", { price: m.price.name, control: m.control.off });
-  const line = t("MoveRoll", { move: label, stat: statName(stat), total: first.total, dice: first.challenge.join(", "), what });
+  const line = t("MoveRoll", { move: label, stat: statName(stat), total: first.total, dice: listItems(first.challenge), what });
   return {
     success: roll.degree >= 2, degree: roll.degree,
     said: { text: roll.said ? `${line} · ${roll.said.text}` : line, data: { move: "faceDanger", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree, burned: roll.burned ?? 0, ...data } }
@@ -750,7 +747,7 @@ function provoke(run, foe) {
     what = run.rng.chance(tauntProof(mark)) ? "Shrugs" : "Rises";
     if ( what === "Rises" ) applyOutcome(mark, { taunt: true, rounds: 1, label: "" }, foe.id, { id: `${foe.id}.provoke` });
   }
-  const line = t("MoveRoll", { move: moveName("FaceDanger"), stat: statName("heart"), total: roll.total, dice: roll.challenge.join(", "), what: t(`Provoke.${what}`) });
+  const line = t("MoveRoll", { move: moveName("FaceDanger"), stat: statName("heart"), total: roll.total, dice: listItems(roll.challenge), what: t(`Provoke.${what}`) });
   return { unit: mark, text: t("Provoke.Line", { foe: foe.spec.name, roll: line }), data: { move: "faceDanger", provokedBy: foe.id, degree: roll.degree, taunted: what === "Rises" } };
 }
 
@@ -773,7 +770,7 @@ function enterTheFray(run, u) {
     if ( roll.degree <= 1 && m.fray.missMomentum ) setMomentum(u, momentumOf(u) + m.fray.missMomentum);
     const lost = m.fray.missMomentum ? t("MomentumChange", { n: m.fray.missMomentum }) : "";
     const what = { 3: `${m.control.on}${t("MomentumChange", { n: "+2" })}`, 2: m.control.on, 1: `${m.control.off}${lost}`, 0: `${m.control.off}${lost}` }[roll.degree];
-    return { text: t("MoveRoll", { move: m.fray.name, stat: statName(stat), total: roll.total, dice: roll.challenge.join(", "), what }), data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
+    return { text: t("MoveRoll", { move: m.fray.name, stat: statName(stat), total: roll.total, dice: listItems(roll.challenge), what }), data: { move: "fray", stat, total: roll.total, challenge: roll.challenge, degree: roll.degree } };
 }
 
 /** A neutral's team (one of up to three): the others taking no side in its friend group, and it. With none, it's alone. */
@@ -842,7 +839,7 @@ export function endureStress(run, u, amount, rng) {
   if ( over ) setMomentum(u, momentumOf(u) - over);
   const stat = Math.max(u.spirit, u.spec.stats?.heart ?? 1);
   const roll = actionRoll(rng, stat);
-  const base = t("MoveRoll", { move: m.stress.name, stat, total: roll.total, dice: roll.challenge.join(", "), what: "" });
+  const base = t("MoveRoll", { move: m.stress.name, stat, total: roll.total, dice: listItems(roll.challenge), what: "" });
   const data = { move: "stress", total: roll.total, challenge: roll.challenge, degree: roll.degree, stress: amount };
   if ( roll.degree === 3 ) {
     const can = u.spirit < u.spiritMax && (e.shakeCost ? u.spirit > 0 && momentumOf(u) - e.shakeCost >= resetOf(u) : !u.shaken);

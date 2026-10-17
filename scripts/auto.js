@@ -7,7 +7,7 @@
  * its kind is (its id: its drives and tactics); and its biography or description as plain text for the keywords, what's
  * said of it apart from its story. Pure.
  */
-import { listItems } from "./core.js";
+import { listItems, plainText } from "./core.js";
 import { t, statName } from "./words.js";
 import { assetLeanKey, speaks } from "./traits.js";
 
@@ -327,11 +327,6 @@ function foeTactics({ nature = "people", key = null, name = "", rank = 2 } = {})
  */
 export function ironswornTactics(d = {}, calc = {}) {
   return d?.pc ? characterTactics(d, calc) : foeTactics(d);
-}
-
-/** Text from the sheet's HTML. */
-export function plainText(html) {
-  return String(html ?? "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, "\"").replace(/\s+/g, " ").trim();
 }
 
 /** Pieces of text as one, for the keywords (the pieces apart, so no word runs into the next). */

@@ -6,11 +6,12 @@
  * on one of the characters. Also: what was given up to end a standoff, and (for the planner's summary) what a fight
  * changes.
  *
- * Undo record shape (consumed by the core's make-it-so.js):
+ * Undo record shape (the core's undoRecord, taken back by its make-it-so.js):
  *   { tokenUuid, actorUuid, actorUpdate, itemUpdates: [{id, update}], createdItems: [id], deletedItems: [data],
- *     createdEffects: [id], tokenUpdate, createdActors, createdTokens, deletedTokens, statuses: [{id, active}], combatant }
+ *     createdEffects: [id], deletedEffects, tokenUpdate, createdActors, createdTokens, deletedTokens, statuses: [{id, active}],
+ *     statusesBefore, combatant }
  */
-import { STATUS } from "./core.js";
+import { STATUS, undoRecord, toggleStatus, commonOutcome } from "./core.js";
 import { t } from "./words.js";
 import { TRACK, TICKS } from "./moves.js";
 import { RANK_KEYS, trackProgress, boxes } from "./conflict.js";
@@ -18,18 +19,6 @@ import { DEBILITY_KEYS } from "./rules.js";
 
 /** This module's flags (the encounter a track is kept for). */
 const MODULE = "fast-fighting-ironsworn";
-
-export function statusesOf(actor) {
-  const out = new Set(actor?.statuses ?? []);
-  for ( const e of actor?.effects ?? [] ) if ( !e.disabled ) for ( const s of e.statuses ?? [] ) out.add(s);
-  return out;
-}
-
-const emptyRecord = (tokenDoc, actor) => ({
-  tokenUuid: tokenDoc?.uuid ?? null, actorUuid: actor.uuid, actorUpdate: {}, itemUpdates: [], createdItems: [], deletedItems: [], createdEffects: [],
-  tokenUpdate: null, createdActors: [], createdTokens: [], deletedTokens: [], statuses: [],
-  statusesBefore: [...statusesOf(actor)]
-});
 
 /** Ticks a foe's track had marked going in, and coming out. */
 const ticks = hp => Math.max(0, Math.min(TRACK, TRACK - Math.max(0, hp)));
@@ -68,7 +57,7 @@ export async function commitIronswornConcession(giverDoc, receiverDoc, concessio
     const before = Number(track.system.current) || 0;
     const after = Math.min(TRACK, before + (TICKS[Number(track.system.rank) || 2] ?? 8) * (concession.amount ?? 1));
     if ( after === before ) return [];
-    const undo = emptyRecord(giverDoc, giver);
+    const undo = undoRecord(giverDoc, giver);
     undo.itemUpdates.push({ id: track.id, update: { "system.current": before } });
     await track.update({ "system.current": after });
     return [undo];
@@ -87,7 +76,7 @@ export async function commitIronswornConcession(giverDoc, receiverDoc, concessio
     const path = supplyPath(actor);
     const was = foundry.utils.getProperty(actor, path);
     if ( was === undefined || Number(was) === value ) continue;
-    const undo = emptyRecord(doc, actor);
+    const undo = undoRecord(doc, actor);
     undo.actorUpdate[path] = was;
     await actor.update({ [path]: value });
     records.push(undo);
@@ -157,7 +146,7 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
   const tokenDoc = scene?.tokens.get(plan.holderTokenId);
   const actor = tokenDoc?.actor;
   if ( !actor ) return [];
-  const undo = emptyRecord(tokenDoc, actor);
+  const undo = undoRecord(tokenDoc, actor);
   const existing = keptTrack(actor, plan, scene.id);
   if ( existing ) {
     const current = Number(existing.system.current) || 0;
@@ -192,7 +181,7 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
  */
 export async function commitIronswornChanges(tokenDoc, spec, changes, final, options = {}) {
   const actor = tokenDoc.actor;
-  const undo = emptyRecord(tokenDoc, actor);
+  const undo = undoRecord(tokenDoc, actor);
   const s = final.system ?? {};
   const was = options.before?.system ?? {};
   if ( spec.mover ) {
@@ -212,9 +201,9 @@ export async function commitIronswornChanges(tokenDoc, spec, changes, final, opt
     };
     for ( const key of Object.keys(changes.conditions?.set ?? {}) ) debility(key, true);
     for ( const key of changes.conditions?.cleared ?? [] ) debility(key, false);
-    if ( changes.died ) await setStatus(actor, "dead", true, undo, { overlay: true });
-    else if ( changes.fell ) await setStatus(actor, "unconscious", true, undo);
-    if ( changes.revived ) await setStatus(actor, "unconscious", false, undo);
+    if ( changes.died ) await toggleStatus(actor, "dead", true, undo, { overlay: true });
+    else if ( changes.fell ) await toggleStatus(actor, "unconscious", true, undo);
+    if ( changes.revived ) await toggleStatus(actor, "unconscious", false, undo);
     if ( Object.keys(update).length ) await actor.update(update);
     return undo;
   }
@@ -232,7 +221,7 @@ export async function commitIronswornChanges(tokenDoc, spec, changes, final, opt
     }
   }
   if ( beaten ) {
-    if ( changes.died ) await setStatus(actor, "dead", true, undo, { overlay: true });
+    if ( changes.died ) await toggleStatus(actor, "dead", true, undo, { overlay: true });
     const combatant = game.combat?.getCombatantsByToken?.(tokenDoc)?.[0];
     if ( combatant && !combatant.defeated ) {
       await combatant.update({ defeated: true });
@@ -245,7 +234,11 @@ export async function commitIronswornChanges(tokenDoc, spec, changes, final, opt
   return undo;
 }
 
-/** Human-readable list of what a fight changes for one creature, for the planner's summary of a fight. */
+/**
+ * Human-readable list of what a fight changes for one creature, for the planner's summary of a fight: what Ironsworn
+ * keeps (health, spirit, momentum, debilities; a foe's progress and its track), then the core's common lines (its
+ * fate, tied up, a change of side).
+ */
 export function describeIronswornOutcome(spec, final) {
   const lines = [];
   const s = final.system ?? {};
@@ -255,26 +248,14 @@ export function describeIronswornOutcome(spec, final) {
     if ( s.shaken && !spec.shaken ) lines.push(t("Out.Shaken"));
     if ( Number.isFinite(s.momentum) && s.momentum !== spec.resources?.momentum ) lines.push(t("Out.Momentum", { from: spec.resources?.momentum ?? 0, to: s.momentum }) + (s.burned ? t("Out.Burned", { n: s.burned }) : ""));
     if ( s.wounded && !spec.wounded ) lines.push(t("Out.Wounded"));
-    if ( final.status === STATUS.DEAD ) lines.push(t("Out.Dies"));
-    else if ( final.status === STATUS.DOWN ) lines.push(s.deathbound ? t("Out.Deathbound") : final.stable ? t("Out.Cold") : t("Out.Dying"));
-    else if ( final.status === STATUS.FLED ) lines.push(t("Out.Retreated"));
-    return lines;
+    if ( final.status === STATUS.DOWN ) lines.push(s.deathbound ? t("Out.Deathbound") : final.stable ? t("Out.Cold") : t("Out.Dying"));
+    return [...lines, ...commonOutcome(spec, final, { hp: false })];
   }
   const before = ticks(spec.hp.value);
   const after = ticks(final.hp);
   // (On one track for the encounter, its progress is the encounter's: shown once, as that track's.)
   if ( !spec.sharedHp && after > before && after < TRACK ) lines.push(t("Out.Progress", { from: Math.floor(before / 4), to: Math.floor(after / 4), n: after - before }));
-  // Beaten: however the table decides; killed, by one who would kill.
+  // Beaten: however the table decides. (Killed, by one who would kill: the core's line.)
   if ( final.status === STATUS.BEATEN ) lines.push(spec.sharedHp ? t("Out.Defeated") : t("Out.Beaten", { n: Math.floor(after / 4) }));
-  else if ( final.status === STATUS.DEAD ) lines.push(t("Out.Killed"));
-  if ( final.status === STATUS.FLED ) lines.push(final.swayed ? t("Out.TalkedAway") : t("Out.Fled"));
-  else if ( final.status === STATUS.SURRENDERED ) lines.push(t("Out.Surrenders"));
-  else if ( final.status === STATUS.STOOD_DOWN ) lines.push(t("Out.StandsDown"));
-  return lines;
-}
-
-async function setStatus(actor, id, active, undo, { overlay = false } = {}) {
-  if ( statusesOf(actor).has(id) === active ) return;
-  await actor.toggleStatusEffect(id, { active, overlay });
-  undo.statuses.push({ id, active: !active, overlay });
+  return [...lines, ...commonOutcome(spec, final, { hp: false })];
 }
