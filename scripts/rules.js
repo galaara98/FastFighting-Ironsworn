@@ -318,9 +318,12 @@ export const ironswornRules = {
     u.hurried = isMover(u) && rush > 0 && run.rng.chance(rush);
     return [...said, fray, provoke(run, u)].filter(Boolean);
   },
-  /** Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. */
+  /**
+   * Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. Not on a
+   * roll the system made (ctx.rolled): its card is shown, and burning is its player's to do from it.
+   */
   adjustRoll(run, u, roll, ctx) {
-    if ( !isMover(u) || !roll?.challenge || ctx?.action?.progressRoll ) return roll;
+    if ( ctx?.rolled || !isMover(u) || !roll?.challenge || ctx?.action?.progressRoll ) return roll;
     const momentum = momentumOf(u);
     const better = burnGrade(momentum, roll.challenge);
     if ( better === null || better <= roll.degree || momentum <= resetOf(u) ) return roll;
