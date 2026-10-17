@@ -6,6 +6,13 @@ import { LORE_BOOST } from "./lore.js";
 import { t, moveName } from "./words.js";
 import { listItems, part } from "./core.js";
 
+/** A character's stats, by the system's keys. */
+export const STATS = Object.freeze(["edge", "heart", "iron", "shadow", "wits"]);
+/** The stat each of the engine's saves stands for (a character's defenses; a stat's own name stands for itself). */
+export const SAVE_STATS = Object.freeze({ fortitude: "iron", reflex: "edge", will: "heart" });
+/** Compel's stat for each way of talking (the core's TALK_KINDS): charming +heart, threatening +iron, lying +shadow. */
+export const COMPEL_STATS = Object.freeze({ persuade: "heart", intimidate: "iron", deceive: "shadow" });
+
 /**
  * A character's combat moves: Strike and Clash at close quarters (+iron) and, for one who fights at range, at a
  * distance (+edge); and End the Fight (Starforged: Take Decisive Action), a progress roll.
@@ -90,7 +97,7 @@ export function doorWork(stats) {
 export function advantageMoves({ id, stats, moves }) {
   const m = moves ?? movesFor("classic");
   if ( !m.advantage ) return [];
-  const best = Math.max(...["edge", "heart", "iron", "shadow", "wits"].map(k => Number(stats?.[k]) || 1));
+  const best = Math.max(...STATS.map(k => Number(stats?.[k]) || 1));
   const gives = r => {
     const o = { rounds: 1 };
     const said = [];

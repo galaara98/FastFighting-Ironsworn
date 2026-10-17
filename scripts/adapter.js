@@ -17,10 +17,13 @@
  * talked to, how it fights, and (with its rank and its kind) its personality.
  * The encounter (the planner's Ironsworn section, conflict.js): one track for it (Starforged's objective, at the rank
  * the GM gives it, kept on one of the characters) or each foe's own (Ironsworn's).
+ * In a turn FastFighting plays, a character's saves and checks are rolled the system's way, its cards in the chat
+ * (system-roll.js).
  */
 import { SystemAdapter, hasWords, localize, plainText } from "./core.js";
 import { ironswornRules, DEBILITIES, DEBILITY_KEYS } from "./rules.js";
-import { characterMoves, foeNumbers, loreSizeUp, doorWork } from "./build.js";
+import { characterMoves, foeNumbers, loreSizeUp, doorWork, STATS, SAVE_STATS } from "./build.js";
+import { moveFor, rollIronswornMove } from "./system-roll.js";
 import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
@@ -151,7 +154,7 @@ export class IronswornAdapter extends SystemAdapter {
       stats,
       hp: { value: Math.max(0, health), max: Number(sys.health?.max ?? 5) || 5, temp: 0 },
       // (The stats too: facing a hazard's danger is +edge.)
-      defenses: { ac: 10, fortitude: stats.iron, reflex: stats.edge, will: stats.heart, ...stats },
+      defenses: { ac: 10, ...Object.fromEntries(Object.entries(SAVE_STATS).map(([save, s]) => [save, stats[s]])), ...stats },
       shield: null,
       initiative: { mod: stats.wits, stealth: stats.shadow },
       speeds: { walk: 30 },
@@ -530,6 +533,31 @@ export class IronswornAdapter extends SystemAdapter {
   /** A character's spotlight, read from the ironsworn system's move cards (read-turn.js). */
   readTurn(messages, context) {
     return readIronswornTurn(messages, context);
+  }
+
+  /**
+   * API 19. A save in a turn FastFighting plays, rolled the system's way (system-roll.js): a character's Face Danger, +the
+   * stat its key stands for. A foe never rolls: null, the engine's dice.
+   */
+  async rollSave(token, options = {}) {
+    return this.#rollMove(token, "save", options);
+  }
+
+  /**
+   * API 19. A check in a turn FastFighting plays, rolled the system's way (system-roll.js): the character's move (Secure an
+   * Advantage, Aid Your Ally, Heal, Compel, Face Danger to lift something). Any other, or a foe's: null, the engine's dice.
+   */
+  async rollCheck(token, options = {}) {
+    return this.#rollMove(token, "check", options);
+  }
+
+  /** A character's save or check as its move (system-roll.js moveFor), by its sheet's stats and ruleset, rolled. */
+  async #rollMove(token, kind, options) {
+    const actor = token?.actor;
+    if ( actor?.type !== "character" ) return null;
+    const stats = Object.fromEntries(STATS.map(k => [k, Number(actor.system?.[k]) || 0]));
+    const how = moveFor(kind, options, { id: token.id, ruleset: this.#ruleset(actor), stats });
+    return how ? rollIronswornMove(token, how, { secret: !!options.secret }) : null;
   }
 
   /**

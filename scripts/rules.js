@@ -41,7 +41,7 @@ import { t, statName, moveName } from "./words.js";
 
 const BASE_DC = 10;
 /** The engine's difficulty (a DC; 10 is ordinary) as adds: a hard talk, a friendly one. */
-const addsFor = dc => (Number.isFinite(dc) ? Math.round((BASE_DC - dc) / 3) : 0);
+export const addsFor = dc => (Number.isFinite(dc) ? Math.round((BASE_DC - dc) / 3) : 0);
 /** The moves a character makes: as its spec says (its ruleset's, with the world's preference), else its ruleset's. */
 const movesOf = u => u.spec.moveRules ?? movesFor(u.spec.ruleset);
 const isMover = u => !!u?.spec?.mover;
@@ -186,6 +186,15 @@ export const ironswornRules = {
   /** Only for a total changed after the dice (the engine's Luck): the likeliest degree for that score. */
   degreeOfSuccess(natural, total) {
     return total >= 8 ? 3 : total >= 4 ? 2 : 1;
+  },
+  /**
+   * A roll the system made itself (a live battle's, its card in the chat: system-roll.js): its challenge dice as they
+   * fell, for the story. Nothing else: no momentum is burned after a roll the system made. Dice unread: as it stands.
+   */
+  asRolled(r) {
+    const challenge = [r?.dice?.challenge1, r?.dice?.challenge2];
+    if ( !challenge.every(Number.isFinite) ) return null;
+    return { natural: r.natural ?? null, total: r.total ?? null, challenge, match: challenge[0] === challenge[1], degree: r.degree };
   },
   attackPenalty() {
     return 0;
