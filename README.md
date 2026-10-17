@@ -51,7 +51,7 @@ Momentum is a resource, as the core counts them: each point is worth a step towa
 Trouble costs health (harm), spirit (stress) or supply, and momentum.
 
 - **Endure Harm** follows any harm, +health or +iron, as the character's ruleset plays it. At 0 health a character fights on, and harm beyond its health comes off its momentum. A miss there marks it wounded; already wounded, it rolls on the harm table: mortal (Face Death), dying, out cold, reeling, or still standing.
-- **Endure Stress** plays the same way on spirit (+spirit or +heart). A horror's price is stress (its rank) instead of harm, and an ally going down costs each character beside it 1 stress (2 when it's killed). At 0 spirit a miss marks the character shaken; already shaken, it may falter or Face Desolation, and on a miss there it gives up the fight.
+- **Endure Stress** plays the same way on spirit (+spirit or +heart). A horror's price is stress (its rank) instead of harm, and an ally going down costs 1 stress (2 when it's killed) to each character on its side who can see it or is within 12 squares (60 feet); with Terrain & positioning off, to every one. At 0 spirit a miss marks the character shaken; already shaken, it may falter or Face Desolation, and on a miss there it gives up the fight.
 - **Supply is the money.** There are no coins or goods: a character pays in Supply, which its side shares, so what one pays, all have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track. In a standoff a character can offer or expect Supply or a promise; a foe can ask for Supply but has none to give.
 
 ### Debilities and impacts are conditions
@@ -175,4 +175,4 @@ MIT for this module's code. Ironsworn and Starforged are by Shawn Tomkin, under 
 
 ---
 
-Developer notes: [CODING_README.md](CODING_README.md). FastFighting itself: [FastFighting Core](https://github.com/galaara98/FastFighting) and its [developer docs](https://github.com/galaara98/FastFighting/blob/main/CODING_README.md).
+Developer notes: [CODING_README.md](CODING_README.md). FastFighting itself: [FastFighting Core](https://github.com/galaara98/FastFighting) and its [developer docs](https://github.com/galaara98/FastFighting/blob/main/CODING_README.md). The numbers behind it all: [STATS_AND_FORMULAS_README](https://github.com/galaara98/FastFighting/blob/main/STATS_AND_FORMULAS_README.md).

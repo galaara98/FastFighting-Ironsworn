@@ -22,7 +22,7 @@
  * objective, and the fight with it.
  * A foe whose track is full is beaten: out of the fight, however the table decides (killed, out of action, fled,
  * surrendered); the core has one who would kill (the Cruel) kill it. An ally going down weighs on the characters
- * beside it: Endure Stress (1; 2 when it's killed).
+ * beside it who see it or are within 12 squares (60 feet) of it: Endure Stress (1; 2 when it's killed).
  *
  * Who's in a fight is "a mover" (spec.mover: a character, who rolls) or a foe (spec.rank). Foes still act against
  * creatures that aren't characters (a companion, a hired hand), with a plain attack.
@@ -34,7 +34,7 @@
  * hazard makes those it reaches Face Danger (+edge). One in a hurry takes End the Fight on sooner; how freely a
  * character uses resources says how readily it burns momentum.
  */
-import { DOWNED_MODELS, STATUS, clamp, listItems, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance } from "./core.js";
+import { DOWNED_MODELS, STATUS, clamp, listItems, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance, coverOf } from "./core.js";
 import { movesFor, harm, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
 import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS, DOOR_HARM } from "./conflict.js";
 import { t, statName, moveName } from "./words.js";
@@ -100,6 +100,18 @@ function playedAsCondition(u, key) {
       (this.conds ??= {})[key] = 1;
     }
   });
+}
+
+/** How near (edge to edge, in feet) a character knows a friend fell without seeing it: 12 squares. */
+const FALL_KNOWN_FEET = 60;
+
+/**
+ * Does character c know its friend u fell? It does when it can see u (a line of sight: the walls don't hide u wholly
+ * from it, the core's coverOf), or u is within FALL_KNOWN_FEET of it. Without positions, every one does.
+ */
+function witnessesFall(run, c, u) {
+  if ( !run.prep.options.positioning || !c.pos || !u.pos ) return true;
+  return coverOf(run, u, c) !== "total" || edgeDistance(c, u) <= FALL_KNOWN_FEET;
 }
 
 const momentumOf = u => u.resources?.momentum ?? 0;
@@ -452,13 +464,14 @@ export const ironswornRules = {
   },
 
   /**
-   * An ally going down (or beaten, or killed) weighs on the characters fighting beside it: each Endures Stress, 1
-   * (2 when it's killed).
+   * An ally going down (or beaten, or killed) weighs on the characters fighting beside it, those who see it fall or
+   * are near enough to know (witnessesFall): each Endures Stress, 1 (2 when it's killed).
    */
   onFall(run, u, { dead = false } = {}) {
     const out = [];
     for ( const c of run.units ) {
       if ( c === u || !isMover(c) || c.side !== u.side || c.status !== STATUS.STANDING || u.spec.hazard ) continue;
+      if ( !witnessesFall(run, c, u) ) continue;
       out.push({ unit: c, ...endureStress(run, c, dead ? 2 : 1, run.rng) });
     }
     return out;

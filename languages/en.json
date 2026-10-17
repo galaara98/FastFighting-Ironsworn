@@ -14,7 +14,7 @@
     "Settings": {
       "rulesPreference": {
         "Name": "Rules preference",
-        "Hint": "With several rulesets on, which version of a shared move (Strike, Clash, Endure Harm, Enter the Fray) a character makes: its own sheet's, or the preferred ruleset's if the world has it on.",
+        "Hint": "With several rulesets on, whose version of a shared move (Strike, Clash ...) a character makes.",
         "sheet": "Follow character sheets",
         "classic": "Prefer Ironsworn",
         "starforged": "Prefer Starforged",
@@ -26,11 +26,11 @@
       },
       "doorHarm": {
         "Name": "Ironsworn only: harm to break down a locked door",
-        "Hint": "Harm a locked door takes before it gives way, hacked at. 3: two hits with a deadly weapon; 1: any hit. With one track for the encounter (Starforged), one hit always does it. A door's own hit points (set on its wall) come first."
+        "Hint": "Harm a locked door takes before it gives way when hacked at. Default 3. Starforged: always one hit."
       },
       "loreBoost": {
         "Name": "Lore-Collector advantage",
-        "Hint": "How much likelier a Lore-Collector's next attack or Compel is to succeed after a hit sizing a foe up (Secure an Advantage). A Strike gets all it can by about 1.5×; the rest helps Compel a hardier foe."
+        "Hint": "How much likelier a Lore-Collector's next attack or Compel is after it Secures an Advantage. Default 2.35×."
       }
     },
     "SecureAnAdvantage": "Secure an Advantage",

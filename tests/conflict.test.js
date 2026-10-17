@@ -3,6 +3,7 @@ import { TICKS, TRACK } from "../scripts/moves.js";
 import { ironswornRules, endureStress } from "../scripts/rules.js";
 import { characterMoves, foeNumbers } from "../scripts/build.js";
 import { deriveIronswornTraits } from "../scripts/traits.js";
+import { coverOf, edgeDistance } from "../scripts/core.js";
 import { defaultMode, defaultRank, joinEncounter, trackProgress, STEPS, ENCOUNTER, boxes, DOOR_HARM, doorHarmOf, doorsFor } from "../scripts/conflict.js";
 import { replay, prepareBattle } from "../../FastFighting/scripts/engine/simulator.js";
 import { createRun } from "../../FastFighting/scripts/engine/battle-state.js";
@@ -139,6 +140,36 @@ describe("beaten, or killed", () => {
     expect(said[0].data.stress).toBe(2);
     // (A foe falling weighs on nobody: foes have no spirit.)
     expect(ironswornRules.onFall(run, run.byId.get("raider"), {})).toEqual([]);
+  });
+
+  /**
+   * Ash falls at the map's corner; a wall 20 feet below it hides everyone beneath. Kara, 20 squares off along the top,
+   * sees it; Bryn, beneath the wall, is 12 squares off (60 feet); Cole, beneath it too, 13 (65 feet).
+   */
+  const onTheMap = positioning => {
+    const at = (x, y) => ({ position: { x, y, size: 5 } });
+    const run = createRun(prepareBattle({
+      ...fight([hero({ id: "ash", ...at(0, 0) }), hero({ id: "kara", ...at(100, 0) }), hero({ id: "bryn", ...at(0, 60) }), hero({ id: "cole", ...at(0, 65) }),
+        foe({ ...at(200, 0) })], { positioning }),
+      walls: [{ a: [-100, 20], b: [100, 20], s: 20 }]
+    }, ironswornRules));
+    run.rng = createRng(4);
+    const fallOf = dead => ironswornRules.onFall(run, run.byId.get("ash"), { dead }).map(s => [s.unit.id, s.data.stress]);
+    return { run, fallOf };
+  };
+
+  test("on the map, an ally's fall weighs on those who see it, or are within 12 squares of it", () => {
+    const { run, fallOf } = onTheMap(true);
+    const [ash, kara, bryn, cole] = ["ash", "kara", "bryn", "cole"].map(id => run.byId.get(id));
+    // (The wall hides Ash from Bryn and Cole; Kara sees it, from farther off than either.)
+    expect([kara, bryn, cole].map(c => coverOf(run, ash, c))).toEqual(["none", "total", "total"]);
+    expect([kara, bryn, cole].map(c => edgeDistance(c, ash))).toEqual([100, 60, 65]);
+    expect(fallOf(false)).toEqual([["kara", 1], ["bryn", 1]]);
+    expect(fallOf(true)).toEqual([["kara", 2], ["bryn", 2]]);
+  });
+
+  test("without positions, it weighs on every character on its side, wherever they stand", () => {
+    expect(onTheMap(false).fallOf(false)).toEqual([["kara", 1], ["bryn", 1], ["cole", 1]]);
   });
 });
 
