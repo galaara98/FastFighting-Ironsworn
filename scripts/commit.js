@@ -95,11 +95,27 @@ export async function commitIronswornConcession(giverDoc, receiverDoc, concessio
   return records;
 }
 
+/**
+ * Is it a track an encounter may be kept on: a progress track, not a vow, a bond or a connection? (The mark that says
+ * which is the encounter's is item data its player can write; a vow marked so would have its rank and progress
+ * overwritten by the fight.)
+ */
+const isTrack = i => i?.type === "progress" && i.system?.subtype === "progress";
+
 /** The track a character keeps for this scene's encounters (one for the encounter, not yet completed), or null. */
 export function encounterTrack(actor, sceneId) {
   if ( !actor || !sceneId ) return null;
-  return actor.items.find(i => i.type === "progress" && i.getFlag?.(MODULE, "encounter") === sceneId && !i.system.completed) ?? null;
+  return actor.items.find(i => isTrack(i) && i.getFlag?.(MODULE, "encounter") === sceneId && !i.system.completed) ?? null;
 }
+
+/** The encounter's track on the character who keeps it: the one the battle began with, else the scene's. Or null. */
+export function keptTrack(actor, plan, sceneId) {
+  const first = plan?.trackId ? actor?.items.get(plan.trackId) : null;
+  return (isTrack(first) ? first : null) ?? encounterTrack(actor, sceneId);
+}
+
+/** The battle's scene (the plan's, kept when it began), else the one on the canvas. */
+const sceneOf = plan => (plan?.sceneId ? game.scenes?.get(plan.sceneId) : null) ?? canvas.scene ?? null;
 
 const rankName = rank => game.i18n.localize(`IRONSWORN.CHALLENGERANK.${RANK_KEYS[rank] ?? "Dangerous"}`);
 
@@ -137,11 +153,12 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
   const lost = end?.resolved === "objectiveLost";
   const achieved = !lost && ((now !== null && now <= 0) || (!!end && (end.winners ?? []).includes(plan.friendly)));
   if ( !fought && !talked && !achieved ) return [];
-  const tokenDoc = canvas.scene?.tokens.get(plan.holderTokenId);
+  const scene = sceneOf(plan);
+  const tokenDoc = scene?.tokens.get(plan.holderTokenId);
   const actor = tokenDoc?.actor;
   if ( !actor ) return [];
   const undo = emptyRecord(tokenDoc, actor);
-  const existing = (plan.trackId ? actor.items.get(plan.trackId) : null) ?? encounterTrack(actor, canvas.scene?.id);
+  const existing = keptTrack(actor, plan, scene.id);
   if ( existing ) {
     const current = Number(existing.system.current) || 0;
     // (Only what changed: the system tells the table of every change, "rank changed from Dangerous to Dangerous" too.)
@@ -156,9 +173,10 @@ export async function commitEncounterTurn(plan, before, after, events = []) {
   } else {
     const [item] = await actor.createEmbeddedDocuments("Item", [{
       type: "progress",
-      name: t("Conflict.TrackName", { scene: canvas.scene?.name ?? "" }),
+      // (The scene as the players know it: its name in the navigation, where the GM gave it one.)
+      name: t("Conflict.TrackName", { scene: scene.navName || scene.name || "" }),
       system: { subtype: "progress", rank, current: Math.min(TRACK, (plan.before ?? 0) + fought + talked), completed: achieved, hasTrack: true },
-      flags: { [MODULE]: { encounter: canvas.scene?.id ?? null } }
+      flags: { [MODULE]: { encounter: scene.id ?? null } }
     }]);
     if ( item ) undo.createdItems.push(item.id);
   }

@@ -8,6 +8,7 @@ import { readIronswornTurn, rollOf, outcomeOf } from "../scripts/read-turn.js";
 import { ironswornRules, endureStress, DEBILITIES, DEBILITY_KEYS } from "../scripts/rules.js";
 import { characterMoves, foeNumbers } from "../scripts/build.js";
 import { IronswornAdapter } from "../scripts/adapter.js";
+import { commitEncounterTurn } from "../scripts/commit.js";
 import { beginLive, liveRound, pcTurnBegin, pcTurnEnd, nextSpotlight, setCondition, syncFromSheets, snapshotRun, restoreRun } from "../../FastFighting/scripts/engine/live.js";
 import { captureUnit } from "../../FastFighting/scripts/engine/simulator.js";
 import { diffOutcome } from "../../FastFighting/scripts/engine/changes.js";
@@ -228,5 +229,52 @@ describe("debilities and impacts: conditions the GM puts on, kept on the sheet",
     const back = restoreRun(spec(), ironswornRules, JSON.parse(JSON.stringify(snapshotRun(run)))).byId.get("kara");
     expect([back.wounded, back.shaken, back.conds]).toEqual([false, true, { unprepared: 1, shaken: 1 }]);
     expect(back.effects.map(e => [e.key, e.rounds])).toEqual([["gm:shaken", 2]]);
+  });
+});
+
+describe("the encounter's one track, on the character who keeps it", () => {
+  const before = { canvas: globalThis.canvas };
+  afterEach(() => Object.assign(globalThis, before));
+
+  /** A character with these progress items (each {id, subtype, current, flagged}), the calls made on it kept. */
+  function keeper(items) {
+    const made = [];
+    const list = items.map(i => ({
+      id: i.id, type: "progress", system: { subtype: i.subtype, current: i.current ?? 0, rank: 2, completed: false },
+      getFlag: (scope, key) => (key === "encounter" && i.flagged ? "battle" : undefined),
+      async update(change) { (this.updates ??= []).push(change); }
+    }));
+    const actor = {
+      items: Object.assign(list, { get: id => list.find(i => i.id === id) }),
+      async createEmbeddedDocuments(type, data) { made.push(...data); return data.map((d, n) => ({ id: `new${n}` })); }
+    };
+    return { actor, list, made };
+  }
+  const scenes = holder => {
+    const battle = { id: "battle", name: "The Wreck (GM notes)", navName: "The Wreck", tokens: { get: id => (id === "kara" ? { uuid: "Token.kara", actor: holder } : null) } };
+    globalThis.game.scenes = { get: id => (id === "battle" ? battle : null) };
+    globalThis.canvas = { scene: { id: "elsewhere", name: "Elsewhere", tokens: { get: () => null } } };
+  };
+  const plan = { mode: "encounter", holderTokenId: "kara", foeIds: ["raider"], rank: 2, friendly: "friendly", before: 0, trackId: null, sceneId: "battle" };
+  const fight = async () => commitEncounterTurn(plan, { raider: { hp: 40 } }, { raider: { hp: 32 } }, []);
+
+  test("a vow marked as the encounter's isn't it: the fight is marked on a progress track of its own", async () => {
+    const { actor, list, made } = keeper([{ id: "vow", subtype: "vow", current: 4, flagged: true }]);
+    scenes(actor);
+    await fight();
+    expect(list[0].updates).toBeUndefined();
+    expect(made).toHaveLength(1);
+    expect(made[0]).toMatchObject({ system: { subtype: "progress", current: 8 }, flags: { "fast-fighting-ironsworn": { encounter: "battle" } } });
+  });
+
+  test("kept on the battle's own scene whatever the GM is looking at, and named for it as the players know it", async () => {
+    const { actor, list, made } = keeper([{ id: "track", subtype: "progress", current: 4, flagged: true }]);
+    scenes(actor);
+    await fight();
+    expect(list[0].updates).toEqual([{ "system.current": 12 }]);
+    list.length = 0;
+    await fight();
+    expect(made[0].name).toContain("The Wreck");
+    expect(made[0].name).not.toContain("GM notes");
   });
 });

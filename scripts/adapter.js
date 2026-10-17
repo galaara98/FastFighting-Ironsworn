@@ -25,7 +25,7 @@ import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
-import { commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, describeEncounterTrack } from "./commit.js";
+import { commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, keptTrack, describeEncounterTrack } from "./commit.js";
 import { readIronswornTurn } from "./read-turn.js";
 import { TRACK_MODES, RANK_KEYS, DOOR_HARM, defaultMode, defaultRank, rankOf, joinEncounter, doorHarmOf, doorsFor } from "./conflict.js";
 import { t, moveName, statName } from "./words.js";
@@ -442,12 +442,14 @@ export class IronswornAdapter extends SystemAdapter {
     spec.doors = doorsFor(spec.doors, { mode: plan.mode, harm: doorHarm() });
     if ( plan.mode !== "encounter" ) return;
     const actor = plan.holder?.token.actor ?? null;
-    const track = actor ? encounterTrack(actor, canvas.scene?.id) : null;
+    // (The battle's scene: its tokens', not whichever the GM looks at later.)
+    const sceneId = plan.holder?.token.parent?.id ?? canvas.scene?.id ?? null;
+    const track = actor ? encounterTrack(actor, sceneId) : null;
     const before = Number(track?.system.current) || 0;
     const onTrack = new Set(plan.foes.map(e => e.token.id));
     spec.combatants = spec.combatants.map(c => (onTrack.has(c.id) ? joinEncounter(c, { rank: plan.rank, current: before }) : c));
     Object.assign(spec.options.system, {
-      before, foeIds: [...onTrack], holderTokenId: plan.holder?.token.id ?? null, holderName: plan.holder?.spec.name ?? "", trackId: track?.id ?? null
+      before, foeIds: [...onTrack], holderTokenId: plan.holder?.token.id ?? null, holderName: plan.holder?.spec.name ?? "", trackId: track?.id ?? null, sceneId
     });
   }
 
@@ -471,7 +473,7 @@ export class IronswornAdapter extends SystemAdapter {
     const plan = spec?.options?.system;
     if ( !state || plan?.mode !== "encounter" || !(plan.foeIds ?? []).includes(tokenDoc.id) ) return state;
     const holder = plan.holderTokenId ? tokenDoc.parent?.tokens.get(plan.holderTokenId)?.actor : null;
-    const track = holder ? ((plan.trackId ? holder.items.get(plan.trackId) : null) ?? encounterTrack(holder, tokenDoc.parent?.id)) : null;
+    const track = holder ? keptTrack(holder, plan, tokenDoc.parent?.id) : null;
     const marked = Math.max(0, Math.min(TRACK, track ? Number(track.system.current) || 0 : Number(plan.before) || 0));
     state.hp = TRACK - marked;
     state.maxHp = TRACK;
