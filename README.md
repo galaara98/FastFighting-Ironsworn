@@ -8,7 +8,7 @@ FastFighting Core plays a fight with a large but fixed set of options: condition
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core 0.3.0 or later (API 18)
+- **Needs:** FastFighting Core 0.4.0 or later (API 19)
 
 ## Installation
 
