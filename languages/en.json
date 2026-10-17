@@ -2,7 +2,8 @@
   "FFIRONSWORN": {
     "Label": "Ironsworn / Starforged",
     "CoreTooOld": "FastFighting Ironsworn needs a newer FastFighting Core. Update FastFighting.",
-    "NeedsCore": "FastFighting Ironsworn needs the FastFighting module. Enable it in Manage Modules.",
+    "CoreUntested": "FastFighting Ironsworn hasn't been tried with FastFighting Core API {major}; some things may not work.",
+    "NeedsCore": "FastFighting Ironsworn needs FastFighting Core. Enable it in Manage Modules.",
     "Momentum": "Momentum",
     "CompelHeart": "Compel (heart)",
     "CompelIron": "Compel (iron)",
@@ -13,7 +14,7 @@
     "Settings": {
       "rulesPreference": {
         "Name": "Rules preference",
-        "Hint": "With more than one ruleset on, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently (Strike, Clash, Endure Harm, Enter the Fray). Follow character sheets: every character makes the moves of the sheet it's on now (an Ironsworn sheet's, a Starforged sheet's), even where that sheet shows other rulesets' moves too. Prefer a ruleset: where it has a move of the same name (and the world has it on), every character makes that ruleset's version. Moves called differently (End the Fight, Take Decisive Action) always stay the character's own.",
+        "Hint": "With several rulesets on, which version of a shared move (Strike, Clash, Endure Harm, Enter the Fray) a character makes: its own sheet's, or the preferred ruleset's if the world has it on.",
         "sheet": "Follow character sheets",
         "classic": "Prefer Ironsworn",
         "starforged": "Prefer Starforged",
@@ -21,15 +22,15 @@
       },
       "deadlyWeapons": {
         "Name": "Characters fight with deadly weapons",
-        "Hint": "Ironsworn: a deadly weapon (a sword, an axe, a spear, a bow) inflicts 2 harm, an unarmed attack or a simple weapon 1. On, characters strike for 2 harm (3 on a strong Strike); off, 1. Only Ironsworn's Strike and Clash inflict harm this way; Starforged's mark progress."
+        "Hint": "Ironsworn's Strike and Clash. On: a hit inflicts 2 harm (a strong hit 3). Off: 1 (a strong hit 2), as a simple weapon or bare hands do."
       },
       "doorHarm": {
         "Name": "Ironsworn only: harm to break down a locked door",
-        "Hint": "Ironsworn (not Starforged): how much harm a locked door takes before it gives way, when someone hacks at it instead of forcing it or picking its lock (Face Danger). 3 is two hits with a deadly weapon; 1, any hit. In Starforged, getting past a door is a step of progress forward: one hit is enough, whatever this says (a fight with one track for the encounter counts as Starforged's). A door's own hit points, set on its wall, come first."
+        "Hint": "Harm a locked door takes before it gives way, hacked at. 3: two hits with a deadly weapon; 1: any hit. With one track for the encounter (Starforged), one hit always does it. A door's own hit points (set on its wall) come first."
       },
       "loreBoost": {
         "Name": "Lore-Collector advantage",
-        "Hint": "How much likelier a Lore-Collector's next attack or Compel (persuading, threatening, deceiving) is to succeed after it Secures an Advantage to size a foe up (on a hit; never without it). 1.25× is a nudge, 3× a sure thing more often than not. Default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price. Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5×; the rest helps Compel a hardier foe."
+        "Hint": "How much likelier a Lore-Collector's next attack or Compel is to succeed after a hit sizing a foe up (Secure an Advantage). A Strike gets all it can by about 1.5×; the rest helps Compel a hardier foe."
       }
     },
     "SecureAnAdvantage": "Secure an Advantage",
@@ -53,8 +54,8 @@
       "Reels": "reels (-1 momentum)",
       "Wounded": "at 0 health: wounded",
       "MortalDies": "the harm is mortal (d100 {d100}); {face}: miss. Dies",
-      "MortalBack": "the harm is mortal (d100 {d100}); {face}: cast back into the world, out of the fight",
-      "MortalBound": "the harm is mortal (d100 {d100}); {face}: lives, bound to a deathbound quest, out of the fight",
+      "MortalBack": "the harm is mortal (d100 {d100}); {face}: lives, out of the fight",
+      "MortalBound": "the harm is mortal (d100 {d100}); {face}: lives, deathbound, out of the fight",
       "Dying": "dying (d100 {d100}): needs healing within an hour or two",
       "Out": "out cold (d100 {d100})",
       "Reeling": "reeling (d100 {d100}; -1 momentum)",
@@ -88,13 +89,13 @@
     },
     "Conflict": {
       "Title": "Conflict",
-      "Hint": "How this encounter is tracked: progress on a track; trouble costs health, spirit or supply.",
+      "Hint": "How the encounter's progress is tracked.",
       "Track": "Track",
       "TrackHint": "One track for the encounter (Starforged) or one per foe (Ironsworn).",
       "Encounter": "One for the encounter",
-      "EncounterHint": "One track for the whole encounter; Take Decisive Action wins it.",
+      "EncounterHint": "Every foe shares it; Take Decisive Action wins it.",
       "Foes": "Each foe's own",
-      "FoesHint": "Each foe has its own track; End the Fight takes it out.",
+      "FoesHint": "End the Fight takes a foe out.",
       "Rank": "Rank",
       "RankHint": "How hard the objective is: progress per mark, and successes to talk a foe round.",
       "Holder": "Kept on",

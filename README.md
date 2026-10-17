@@ -4,11 +4,11 @@
 > - **Programming:** I am a skilled programmer by profession, but AI was used heavily as a co-pilot.
 > - **Strings:** ALL initial strings were proposed by a LLM to get the concepts out, ALL strings were  tracked to make sure they were re-written (for simple or ttrpg/game specific phrases, approved by) a native speaker.
 
-Ironsworn and Starforged support for [FastFighting Core](https://github.com/galaara98/FastFighting), the Foundry VTT module that simulates a fight (or a tense standoff) thousands of times, tells the story of one fair draw, and plays it for real on the Combat Tracker, a turn at a time, with **Do it For Real Now**.
+FastFighting Core plays a fight with a large but fixed set of options: conditions, maneuvers, holds, reactions, resources, outcomes and the like. Each system helper maps its game into those options. This one maps Ironsworn, Starforged and Sundered Isles, so the core can simulate a fight, tell its story, and play it for real on the Combat Tracker with **Do it For Real Now**.
 
 - **Foundry:** v14
 - **System:** Ironsworn & Starforged (`foundry-ironsworn`) 1.20 or later (written against 1.28)
-- **Needs:** FastFighting Core (API 18)
+- **Needs:** FastFighting Core 0.3.0 or later (API 18)
 
 ## Installation
 
@@ -19,170 +19,160 @@ https://github.com/galaara98/FastFighting/releases/latest/download/module.json
 https://github.com/galaara98/FastFighting-Ironsworn/releases/latest/download/module.json
 ```
 
-## What it reads
+## How Ironsworn maps onto FastFighting
 
-- **Characters:** edge, heart, iron, shadow and wits; health, momentum (its reset and its ceiling, as impacts leave them); a wound already marked; and, in a fight already under way, who has the initiative (the sheet's combat position). A character's sheet says which rules it plays by: the Ironsworn sheet the classic moves, the Starforged sheet Starforged's.
-- **Fighting at range:** a character with an asset for it, by its id (Archer, Slinger, Sniper, Gunner, Gunslinger, Musketeer, Pistoleer; not the Long-Arm's staff), or more edge than iron, can Strike and Clash at a distance (+edge) as well as up close (+iron).
-- **Foes:** the foe's progress track: its rank (troublesome to epic) and the ticks already marked on it. What it is comes from its id (Ironlanders, Firstborn, Animals, Beasts, Horrors, Anomalies; Starforged's foes as the book has each: human, creature, monster, machine, horror), else where its compendium files it, else its words: people and the Firstborn can be talked to; horrors and machines don't break; beasts fight on instinct.
+The game's ideas, one by one, and what the core makes of each.
 
-## Personality
+### Characters roll; foes don't
 
-Each trait's tooltip in the planner lists where it started and every part that moved it.
+Ironsworn's foes never roll against the characters, so FastFighting plays every foe through the characters' moves. A foe hurts a character when that character's move pays the price: a miss on a Strike costs the foe's harm, which is its rank. Foes do attack anyone who isn't a character (a companion, a hired hand), with a plain attack at their rank.
 
-- **A character** starts as the usual hero (bold, loyal, unselfish, a good head) and everything on its sheet moves it a little:
-  - its **stats**, against the usual spread's (3, 2, 2, 1, 1: on average, the usual hero): wits for Tactical; heart for Brave and Loyal, and less Selfish; iron for Brave; shadow more Selfish, a little less Loyal; edge a little more careful;
-  - its **assets**, by their id (Ironsworn's, Starforged's and Sundered Isles' of the same name alike), a little more for each upgrade: a Shield-Bearer or Banner-Sworn more loyal and bold, an Outcast or Fugitive less loyal, a Cutthroat or Mercenary more selfish, a Berserker bolder and less careful, the Honorbound, a Devotant or a Healer less selfish, a Lorekeeper or Sleuth a planner; a companion at its side a little more loyal;
-  - how far it has come: its upgrades, and the assets it took on beyond its first three (its ship aside), for Tactical;
-  - its **debilities or impacts**, for now: shaken, traumatized, tormented, wounded or maimed, less bold; corrupted, more selfish and less loyal; indebted or unprepared, more selfish; cursed (Ironsworn) or doomed, bound to death's quest, bolder;
-  - its **bonds** (Ironsworn) or **connections** (Starforged; one it has forged a bond with counts twice), beyond the first, for Loyal;
-  - its **vows**: sworn to more than the usual two, more loyal and less selfish; the more dangerous they are, the bolder; each one fulfilled, its word kept;
-  - its **legacies** (Starforged, Sundered Isles): quests for Brave, bonds for Loyal, discoveries for Tactical.
-- **A foe:** what it is (horrors and machines fearless, animals quick to flee, the Firstborn canny) and its rank (the higher, the bolder); then what the books say its kind is like, by its id (a raider greedy and bold and stands with its kin, common folk fearful for their families, a wolf with its pack, a servitor made to protect, a troll sly and selfish); and one that comes as many (a pack, a swarm, a boarding party) stands together.
+### A progress track is a foe's hit points
 
-## A conflict
+The ticks left on a foe's progress track (10 boxes, 40 ticks) are its hit points, and the ticks already marked count. Harm marks progress at the foe's rank, as the game paces it: each point of harm marks 3 boxes on a troublesome foe, 2 on a dangerous one, 1 on a formidable one, 2 ticks on an extreme one and 1 tick on an epic one. A full track beats the foe: it leaves the fight, and the table decides what that means (killed, out of action, fled, surrendered). A Cruel character kills a foe it beats.
 
-As the game plays it, success is progress on a track, and things going wrong cost health (harm), spirit (stress, despair) or supply (anything material lost), and momentum. The planner has a **Conflict** row for it:
+**End the Fight** (Starforged: **Take Decisive Action**) is a progress roll, made in control once the foe's track is half full. A hit ends that foe's part in the fight (a weak hit costs 2 momentum). A miss loses the initiative and pays the price (the foe's harm, plus 1).
 
-- **Track:**
-  - **One for the encounter** (Starforged's objective; the default where anyone plays Starforged or Sundered Isles): every foe is part of one track. Every Strike and Clash marks progress on it, at the encounter's rank, whichever foe it's aimed at, and every success in words marks it too (a strong hit twice). Fill it and the foes are beaten together; Take Decisive Action, once it's well along (seven boxes), is a progress roll against it: a hit achieves the objective, a miss loses it, and the fight with it.
-  - **Each foe's own** (Ironsworn's, the default otherwise): harm marks progress on each foe's own track, at its own rank, and End the Fight takes that foe out of it.
-- **Rank** (one track): Troublesome to Epic, how hard the objective is: how much each mark fills (troublesome 3 boxes, dangerous 2, formidable 1, extreme 2 ticks, epic 1), and how many successes it takes to talk a foe round (2, 3, 6, 12, 24). By default, its most dangerous foe's.
-- **Kept on** (one track): the character whose sheet keeps the track (the party's leader by default); the others can follow it by hand. Do it For Real Now writes it there: the track it keeps for this scene's encounters, else a new one named for the scene, completed when the objective is achieved.
+### The initiative decides Strike or Clash
 
-Either way, a foe's own rank says how hard it hits back, and a foe whose track is full is **beaten**: out of the fight, and the players decide what that means (killed, out of action, fled, surrendered). A Cruel character kills a foe it beats, and the story says so (Do it For Real Now marks it dead; a beaten foe is only marked defeated).
+With the initiative (Starforged: in control) a character Strikes; without it, it Clashes. Both roll +iron up close or +edge at range. A character fights at range with an asset for it (Archer, Slinger, Sniper, Gunner, Gunslinger, Musketeer, Pistoleer) or with more edge than iron. A miss, or a weak Clash, pays the price: the foe's harm (1 more on matching challenge dice).
 
-**Going wrong:** an ally going down weighs on the characters beside it (Endure Stress, 1; 2 when it's killed).
+- **Ironsworn:** a hit inflicts the weapon's harm (the **Characters fight with deadly weapons** setting). A strong hit inflicts 1 more and takes or keeps the initiative; a weak Strike loses it.
+- **Starforged:** a Strike marks progress twice on any hit, a Clash twice on a strong hit; a strong hit puts the character in control.
 
-**Someone taking a side mid-fight** (one taking no side, won over or turning on one) has exactly one effect in a conflict, each way:
-- **Joining the party**, the first to: a success, a mark of progress on the encounter's track (never the last; the fight still has to win it), or, with each foe's own track, +1 momentum for each character.
-- **Turning on the party**: it's part of the encounter's track from then on. What it means is settled once, the first time it happens, with whoever else turned at the same moment: a whole neutral team (of the up to three) or a leader among them makes the objective a step harder (the rank up one, never to Epic); anyone else, or with no step to take (Extreme already, or each foe's own track), each character endures stress (1).
+**Enter the Fray** is each character's first move, unless its sheet already shows its combat position: +shadow when its side springs an ambush, +wits when ambushed, otherwise Ironsworn's +heart or Starforged's best of +edge, +heart and +iron. A strong hit gives the initiative and +2 momentum, a weak hit the initiative, and a miss a bad spot (Ironsworn: and -1 momentum).
 
-## How a fight plays
+### Momentum is a resource to burn
 
-The characters make the moves, as in the game; foes never roll.
+Momentum is a resource, as the core counts them: each point is worth a step toward a burn. A character burns it to turn a miss into a hit or, with plenty to spare, a weak hit into a strong one, never on a progress roll; momentum then resets. Its **Resources** tactics answer sets how readily: conserving, only for a miss that matters; all out, for any miss, and for a weak hit with 4 or more.
 
-- **Enter the Fray** on a character's first turn: +shadow when its side springs an ambush, +wits when ambushed; otherwise Ironsworn's +heart, or Starforged's best of +edge, +heart and +iron. A strong hit, the initiative and +2 momentum; a weak hit, the initiative; a miss, a bad spot (Ironsworn: and Pay the Price, -1 momentum).
-- **Strike** with the initiative (in control), **Clash** without it: +iron up close, +edge at range. A hit marks progress on the foe's track, as many ticks a mark as its rank allows (troublesome 12, dangerous 8, formidable 4, extreme 2, epic 1). Ironsworn: a deadly weapon inflicts 2 harm, a simple one or bare hands 1 (characters' sheets don't say, so a world setting does: deadly by default); a strong Strike inflicts +1 harm and keeps the initiative; a weak Strike loses it; a strong Clash takes it. Starforged: a hit on a Strike marks progress twice; a strong hit keeps you in control.
-- **Pay the Price:** a miss, or a weak Clash, costs the foe's harm (its rank; one more on matching challenge dice).
-- **Endure Harm:** after any harm, +health or +iron: a strong hit shakes it off (+1 health; Ironsworn's for a point of momentum, Starforged's free if not wounded) or embraces the pain (+1 momentum); a weak hit presses on (Starforged: a point of momentum for +1 health, if not wounded); a miss costs a point of momentum (Starforged: -1 health, or -2 momentum). At 0 health a character fights on, harm beyond its health coming off its momentum; a miss there marks it wounded, or (already wounded) rolls on the harm table: mortal (Face Death, +heart: survive, survive deathbound, or die), dying, out cold, reeling, or still standing.
-- **End the Fight** (Starforged: Take Decisive Action): with the initiative and the foe's track at least half full, a progress roll. A hit ends that foe's part in the fight (a weak one costs momentum); a miss loses it, and the price is paid.
-- **Burning momentum:** when it turns a miss into a hit (or, with plenty to spare, a weak hit into a strong one); momentum resets after. Never on a progress roll.
-- **Securing an advantage** (in control), with the character's best approach (its highest stat): Ironsworn's **Secure an Advantage** (a strong hit: +1 on the next move; a weak hit: +1 momentum) or Starforged's **Gain Ground** (a strong hit: +1 on the next move and +2 momentum; a weak hit: +1 on the next move). **Aid Your Ally** gives the same to a friend, and a strong hit puts both in control. A miss pays the price: -1 momentum, and the upper hand lost. A Strike usually does more, so a character secures an advantage when it fights poorly next to a friend who fights well, when it's set on helping (a stated desire), or when a friend asks it to (a friend's "Be bolstered by" desire, and a language in common). Momentum counts for something: a step toward burning it. The story tells Securing an Advantage as gaining ground, and Aid Your Ally as aiding a friend.
-- **A Lore-Collector** sizes a foe up by Securing an Advantage, assessing it (+wits). A hit makes its next attack, or its next Compel (persuading, threatening, deceiving), likelier to succeed, at whoever it's aimed, by the **Lore-Collector advantage** setting (1.25× to 3×; default 2.35×: what it takes for that one roll to make up for the move it cost, with +3 wits hitting 77% of the time and a miss paying the price). Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5× (+2 iron) or 1.75× (+1); the rest helps Compel a hardier foe, where the odds start low. A miss pays the price.
-- **Talking:** Compel, by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank. A strong hit: +1 momentum. A miss pays the price: a refusal that weighs on the character (Endure Stress, 1); a miss on matching dice is also a demand that costs it dearly (a point of supply, to whoever it was talking to).
-- **Stress:** a horror's price is dread (Endure Stress, its rank) rather than harm. **Endure Stress** plays as Endure Harm does, on spirit (+spirit or +heart): a strong hit shakes it off or embraces the darkness (+1 momentum); a weak hit presses on; a miss costs momentum (Starforged: worse than it seemed). At 0 spirit a miss marks the character shaken; already shaken, it may falter (-1 momentum) or be overwhelmed: Face Desolation (+heart), and on a miss it gives up the fight.
-- **Debilities and impacts in the story:** wounded is told as badly hurt, shaken as rattled, maimed and permanently harmed as a crippling injury. The rest (unprepared, encumbered, corrupted, cursed, tormented, doomed, indebted, traumatized, battered) are burdens nobody watching would see, so the story leaves them out.
-- **Paying, and giving ground:** there are no coins or goods. A character who pays (to strike a deal, or talked into it) pays in Supply, which its side shares: what one pays, all of them have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track, the winners' reward. What a character can offer or expect in a standoff is Supply, or a promise; a foe can ask for Supply (as a raider would), but has none to give.
-- **Breaking free, and freeing a friend:** a character tied up or held breaks free with **Face Danger**, using the better of +edge (slipping out) and +iron (forcing it). A strong hit gets it free (+1 momentum); a weak hit gets it free at a cost (-1 momentum); a miss leaves it held and pays the price (-1 momentum, and the upper hand lost). Momentum is burned only to turn a miss into a hit. Untying a friend takes no roll, unless a foe is beside the one untying: then it's Face Danger too. Either takes the turn's move. Foes don't roll: whether one gets loose is the core's chance.
-- **A locked door** in the way: a character gets past it with **Face Danger**, +iron to force it (it breaks), or the better of +shadow and +wits to pick its lock (anyone may try either), or hacks at it, whichever is quickest. **In Ironsworn** a door stands up to 1 to 3 harm, as the **Ironsworn only: harm to break down a locked door** setting says (3 by default: a deadly weapon's two hits, or one strong hit; a foe's harm is its rank). **In Starforged** getting past a door is a step of progress forward: one hit is enough, whatever the setting says. A fight counts as Starforged's when it has one track for the encounter, so a mixed party goes by that: by default Starforged's when any character plays Starforged's or Sundered Isles' moves, unless the planner's Track says otherwise. A GM's own numbers for a door (in its wall's flags) come first, in the same terms: hit points are harm, and each 3 of a DC over 10 is an add off the roll. A strong hit gets through (+1 momentum), a weak hit gets through at a cost (-1 momentum), and a miss pays the price (-1 momentum, and the upper hand lost), with momentum burned as when breaking free. Hacking at it, a strong hit does the Strike's strong harm.
+### Health, spirit and supply
+
+Trouble costs health (harm), spirit (stress) or supply, and momentum.
+
+- **Endure Harm** follows any harm, +health or +iron, as the character's ruleset plays it. At 0 health a character fights on, and harm beyond its health comes off its momentum. A miss there marks it wounded; already wounded, it rolls on the harm table: mortal (Face Death), dying, out cold, reeling, or still standing.
+- **Endure Stress** plays the same way on spirit (+spirit or +heart). A horror's price is stress (its rank) instead of harm, and an ally going down costs each character beside it 1 stress (2 when it's killed). At 0 spirit a miss marks the character shaken; already shaken, it may falter or Face Desolation, and on a miss there it gives up the fight.
+- **Supply is the money.** There are no coins or goods: a character pays in Supply, which its side shares, so what one pays, all have that much less of. A foe made to give something up gives ground instead: a mark of progress on its own track. In a standoff a character can offer or expect Supply or a promise; a foe can ask for Supply but has none to give.
+
+### Debilities and impacts are conditions
+
+Each debility (Ironsworn) or impact (Starforged) is a core condition under the system's own id, so the sheet and the fight agree. The rules play wounded and shaken. The rest stay on the sheet, where the system counts them against momentum, and change no move. The story tells wounded as badly hurt, shaken as rattled, and maimed or permanently harmed as a crippling injury; it leaves out the rest, which nobody watching would see.
+
+### Talking is Compel
+
+The core's three ways of talking are Compel: by heart (persuade), iron (threaten) or shadow (bluff), against challenge dice, harder against a foe of higher rank. A strong hit gives +1 momentum. A miss pays the price: a refusal that costs 1 stress, and on matching dice a demand that costs a point of Supply, to whoever it was talking to. Only people and the Firstborn can be talked to.
+
+### What a foe is
+
+A foe's kind comes from its id (Ironsworn's Ironlanders, Firstborn, Animals, Beasts, Horrors and Anomalies; Starforged's foes as the book has each), else the folder its compendium files it under, else its words. When FastFighting sets a foe up by itself, horrors and machines never break, and beasts and animals stay where the fight is. A foe's own rank sets how hard it hits back.
+
+### Securing an advantage
+
+The core's buffs are the game's moves for the upper hand. In control, a character can **Secure an Advantage** (Starforged: **Gain Ground**) with its best stat, or **Aid Your Ally** to give the same to a friend.
+
+- **Ironsworn:** a strong hit gives +1 on the next move; a weak hit, +1 momentum.
+- **Starforged:** a strong hit gives +1 on the next move and +2 momentum; a weak hit, +1 on the next move.
+
+A strong hit on Aid Your Ally puts both in control. A miss pays the price: -1 momentum, and the upper hand lost. A Strike usually does more, so a character secures an advantage when it fights poorly beside a friend who fights well, when it's set on helping, or when a friend asks (a "Be bolstered by" desire, in a language they share). It is also how a character's assets come into play, so for one with assets it counts as its specialty (the **Magic and specialties** tactics answer).
+
+A **Lore-Collector** sizes a foe up the same way, +wits. A hit makes its next attack or Compel likelier to succeed, by the **Lore-Collector advantage** setting.
+
+### Heal
+
+**Heal** (+wits), in control, mends a friend or the character itself: a hit gives +2 health (a weak hit costs a point of momentum), and a miss pays the price. Anyone can Heal, so Heal makes no one a healer; for a Herbalist or a Healer it is a specialty.
+
+### Face Danger: holds, doors and hazards
+
+The game has one move for getting past trouble, so the core's holds and locked doors become **Face Danger**:
+
+- **Breaking free** (tied up or held): the better of +edge and +iron. Untying a friend takes no roll, unless a foe is beside the one untying.
+- **A locked door:** +iron to force it, the better of +shadow and +wits to pick its lock, or hacking at it, whichever is quickest. Hacked at, an Ironsworn door stands up to 1 to 3 harm (a setting), and a Starforged door gives way to one hit; a strong hit does a strong Strike's harm. A fight with one track for the encounter counts as Starforged's. A GM's own numbers for a door (in its wall's flags) come first: hit points are harm, and each 3 of a DC over 10 is an add off the roll.
+
+A strong hit gets through (+1 momentum), a weak hit gets through at a cost (-1 momentum), and a miss pays the price (-1 momentum, and the upper hand lost). Momentum is burned only to turn a miss into a hit. Foes don't roll: whether one gets loose is the core's chance.
+
+A **hazard** (anything the GM marks as one) makes those it reaches Face Danger (+edge): a strong hit gets clear, a weak hit gets clear at -1 momentum, and a miss takes its harm.
+
+### Taking a side mid-fight
+
+Someone taking a side mid-fight (won over, or turning) has one effect in a conflict, each way:
+
+- **Joining the party:** the first to do so counts as a success: a mark of progress on the encounter's track (never the mark that fills it), or, with each foe's own track, +1 momentum for each character.
+- **Turning on the party:** it becomes part of the encounter's track, if there is one. The first time it happens, a whole neutral team or a leader among them raises the encounter's rank a step (never to Epic); anyone else, or with no step to take, costs each character 1 stress.
+
+### Personality, playstyles and tactics
+
+A character starts as the usual hero, and its sheet moves each trait a little: its stats, assets, debilities or impacts, bonds or connections, vows, legacies, and how far it has come. A Shield-Bearer is more loyal and bold; a corrupted character, more selfish. A foe's traits come from its kind, its rank (the higher, the bolder), what the books say of its kind (a raider is greedy and bold), and whether it comes as many. Each trait's tooltip in the planner lists every part that moved it.
+
+When FastFighting sets a character up by itself, its assets suggest playstyles (a Shield-Bearer a Tank, a Berserker a Brawler, an Archer a Wallflower). **Let this character decide** answers from a character's assets, stats and supply (a Berserker goes for the nearest foe and never retreats), or from a foe's kind (raiders talk first, to intimidate, and expect Supply). The GM sees each answer with its reason. [CODING_README.md](CODING_README.md#personality-and-set-up) lists every mapping.
+
+## The encounter's one track
+
+Starforged gives a fight one objective; Ironsworn gives each foe its own track. The planner's **Conflict** row chooses:
+
+- **Track:** **One for the encounter** (the default when any character plays Starforged or Sundered Isles) or **Each foe's own** (the default otherwise).
+- **Rank** (one track): Troublesome to Epic, by default the most dangerous foe's. It sets how much each mark fills, and how many successes talk a foe round (2, 3, 6, 12, 24).
+- **Kept on** (one track): the character whose sheet keeps the track, by default the party's leader. The others can follow it by hand.
+
+With one track, every foe is part of it. Every Strike and Clash marks progress on it at the encounter's rank, whichever foe it's aimed at, and so does every success in words (a strong hit twice). Fill it and the foes are beaten together. Once it has seven boxes, Take Decisive Action (or End the Fight) is a progress roll against it: a hit achieves the objective; a miss loses it, and the fight with it.
+
+## Live battles: the spotlight
+
+Ironsworn has no turn order; its initiative is only who has the upper hand. In a live battle the Battle Vantage gives the spotlight to the next character able to act, or to whoever the GM picks. Foes take no turns of their own unless no character can act.
+
+After a player's turn, FastFighting reads the system's move cards for Strike, Clash, End the Fight, Take Decisive Action and Compel. The cards name no foe, so a blow goes to the foe whose track moved, or the GM says which.
+
+Each turn writes onto the sheets:
+
+- **A character:** health, spirit, momentum, debilities or impacts (the GM can mark or clear any in the Battle Vantage), and the unconscious or dead status when it falls. A player's own changes between turns count from the next turn.
+- **A foe:** progress on its track, completed when it's beaten (its combatant defeated; dead, if a Cruel character killed it). A fled foe is hidden, unless the core's **Do it For Real Now: fled combatants** setting leaves it.
+- **One track for the encounter:** progress on the keeper's sheet, on the track kept for this scene's encounters, else a new one named for the scene; completed when the objective is achieved.
+- **Supply paid:** lowered for every character on the payer's side and, with the system's Shared Supply Tracker on (the default), every character and starship sharing it. **Ground given:** progress on the foe's track.
+
+**Rewind** takes a turn back; **Rewind This Encounter**, the whole battle.
+
+## Settings
+
+In **Settings → FastFighting Ironsworn**:
+
+- **Rules preference:** with more than one ruleset on, which version a character makes of a move they share (Strike, Clash, Endure Harm, Enter the Fray). One pill is on at a time.
+  - **Follow character sheets** (the default): the sheet the character is on now, the token's choice over its actor's. A Starforged sheet makes Sundered Isles' moves in a world with Sundered Isles on and Starforged off. The compact sheet goes by the rulesets the world has on, Ironsworn first.
+  - **Prefer Ironsworn**, **Prefer Starforged**, **Prefer Sundered Isles:** that ruleset's version, where the world has it on. Of the combat moves, Sundered Isles has only its own Enter the Fray. End the Fight and Take Decisive Action stay the character's own, as do the words for the upper hand (the initiative, in control).
+- **Characters fight with deadly weapons** (on by default): Ironsworn's Strike and Clash inflict 2 harm a hit, 3 on a strong hit; off, 1 and 2, as a simple weapon or bare hands do. Sheets don't say what a character carries, so the GM does.
+- **Ironsworn only: harm to break down a locked door** (1 to 3, default 3: a deadly weapon's two hits, or one strong hit).
+- **Lore-Collector advantage** (1.25× to 3×, default 2.35×). At 2.35× the boosted roll makes up for the move spent sizing up, with +3 wits hitting 77% of the time and a miss paying the price. Ironsworn's dice cap a roll near 95%, so a Strike gets all it can by about 1.5× (+2 iron) or 1.75× (+1 iron); the rest helps Compel a hardier foe, where the odds start low.
 
 ## Playstyles in Ironsworn
 
-Every perk a playstyle (or a tactics answer) can switch on does something here. Most play as they do in any system (who a character goes for, when it loses heart, whom it listens to, how it talks). Foes don't roll, so what they would do comes through the characters' own moves. These are Ironsworn's own:
+Every perk a playstyle (or a tactics answer) can switch on does something here, and most play as in any system; the core's README lists which playstyles have each. Foes don't roll against the characters, so what they would do comes through the characters' moves. These are Ironsworn's own:
 
-| Perk (playstyles) | In Ironsworn |
+| Perk | In Ironsworn |
 | --- | --- |
-| Drawing attacks, guarding, taunting (Tank, Martyr, Instigator, Redeem-Seeker; guards: Enabler, Moralist, Wants to Lead; taunters: Tank, Instigator, Martyr, Brawler, Redeem-Seeker) | A foe's attention is the price a character pays. When a friend misses, **Pay the Price** may put it **in harm's way** instead (one of the books' own prices). That's always a friend whose taunt the foe is under (Compel, provoking it). Otherwise it's one who draws attacks or guards its friends, as likely as its perk. |
-| Hard to spot (Chicken, Fragile, Wallflower) | When it misses, the foe's eye may slide to a friend beside it, who pays the price. On its first turn it may **Enter the Fray** moving into position unseen (+shadow), if that's its best. |
-| Hard to taunt (Relentless, Skeptic, Peacekeeper, Puzzle-Maniac, Diplomat, Chicken, Wallflower, Lazy) | A foe the GM made a taunter doesn't roll: it provokes. The character it would draw **Faces Danger** (+heart) to keep its head. On a miss it rises to it and wants to go for that foe, unless it shrugs taunts off. A foe provokes as often as a playstyle taunt takes hold (the Taunting setting). |
-| Spoiling, weak spots (Instigator most; Cruel, Wants to Lead, Wallflower, Puzzle-Maniac) | There are no conditions to lay and no damage types. **Secure an Advantage** (Gain Ground) is how it gains leverage or finds a weak point, likelier the more of a spoiler or Puzzle-Maniac it is. |
-| In a hurry (Impatient, Speed-Runner) | It takes on **End the Fight** (Take Decisive Action) two boxes sooner: at three boxes of a foe's own track, five of the encounter's. It doesn't stop to Secure an Advantage. |
-| Helping (Enabler, People-Pleaser, Moralist, Martyr, Redeem-Seeker, Tank) | **Aid Your Ally**. |
-| Mending, healing, rescue (Fragile, Moralist, Martyr, Enabler; "a friend falling: rescue") | **Heal** (+wits), in control. A hit gives +2 health (a weak hit costs a point of momentum). A miss pays the price. |
-| Thief | Lifts something with **Face Danger** (+shadow). A foe gives ground (a mark of progress on its track); a character gives up Supply. |
-| Trap avoiders (Thief, Puzzle-Maniac, Skeptic, Lore-Collector, Chicken, Wallflower) | A hazard (anything the GM marks as one) makes those it reaches **Face Danger** (+edge). A miss takes its harm; a weak hit gets clear at a cost (-1 momentum); a strong hit gets clear. A trap avoider may spot it and keep clear. |
-| Casters as targets (Puzzle-Maniac) | Horrors and the Firstborn count as casters: they have powers of that kind, if no spells. |
-| Lore-Collector | Sizes a foe up by Securing an Advantage (+wits): see **How a fight plays**. |
-| Finishing the fallen (Cruel); sparing them (Moralist, Peacekeeper, Diplomat) | A Cruel character kills a foe it beats. The rest leave a beaten foe for the table to decide. |
-| Acting first (Instigator) | The order the characters take their turns. |
+| Drawing attacks, guarding, taunting | When a friend misses, Pay the Price may put this character **in harm's way** instead (one of the books' own prices): always one whose taunt the foe is under; otherwise one who draws attacks or guards, as likely as its perk. |
+| Hard to spot | When it misses, the foe's eye may slide to a friend beside it, who pays the price. On its first turn it may Enter the Fray moving into position unseen (+shadow). |
+| Hard to taunt | A taunting foe doesn't roll: it provokes, as often as the Taunting setting lets a taunt take hold. The character it would draw Faces Danger (+heart); on a miss it wants to go for that foe, unless it shrugs taunts off. |
+| Spoiling, weak spots | There are no conditions to lay and no damage types: it Secures an Advantage (Gain Ground) more often. |
+| In a hurry | It takes on End the Fight two boxes sooner (three boxes of a foe's own track, five of the encounter's) and doesn't stop to Secure an Advantage. |
+| Helping | Aid Your Ally. |
+| Mending, healing, rescue | Heal. |
+| Thief | Face Danger (+shadow): a foe gives ground (a mark of progress on its track); a character gives up Supply. |
+| Trap avoiders | It may spot a hazard and keep clear of it. |
+| Casters as targets | Horrors and the Firstborn count as casters: they have powers, if no spells. |
+| Finishing or sparing the fallen | A Cruel character kills a foe it beats; one who spares the fallen leaves a beaten foe to the table. |
+| Acting first | The order the characters take their turns. |
 
-Tactics answers:
+## What isn't played
 
-- **Magic and specialties** (an Un-Mundane character leans on them): a character with assets (a companion, a path, a ritual) brings them to bear by Securing an Advantage (Gain Ground), so that is its specialty; without assets, it has none. Strike, Clash, Compel, Aid Your Ally and Heal are what anyone could do, so Heal alone makes no one a healer (an Enabler or Moralist); for a Herbalist or a Healer (by the asset's id), healing is its thing, and Heal its specialty too.
-- **Resources** (conserve, balanced, nova): how readily it burns momentum. Conserving, it burns it only to turn a miss into a hit that matters, never a weak hit into a strong one. All out, it burns it to turn any miss into a hit, and a weak hit into a strong one with 4 or more.
+- Foes never roll against the characters, and there's no turn order.
+- Ironsworn has no potions, shields to raise or signature attacks: those tactics questions stay the core's.
+- Debilities and impacts other than wounded and shaken change no move.
+- Of a player's move cards, FastFighting reads only Strike, Clash, End the Fight, Take Decisive Action and Compel.
 
-**Homebrew** (the books leave these to the table; this module's reading, kept to the game's own moves):
-- Who is put in harm's way, and when.
-- A foe's provocation as Face Danger (+heart).
-- Theft as Face Danger (+shadow), and what a hit takes.
-- A hazard's Face Danger (+edge), and a weak hit's cost.
-- Breaking free as Face Danger (+edge or +iron), and untying a friend with no roll unless a foe is beside it.
-- A locked door as Face Danger (+iron to force it, +shadow or +wits to pick it), and a door's 1 to 3 harm (Ironsworn) or one hit (Starforged).
-- Heal in a fight only for one in control, and +wits for its own wounds too (the books say the lower of wits and iron).
-- End the Fight two boxes sooner for one in a hurry.
-- +shadow in the fray for one keeping a low profile.
-
-## Set up by itself
-
-When FastFighting sets a character up by itself (the first time it sees it: see the core's README), Ironsworn has its say on its playstyles:
-- **A character's assets,** by the system's id for each (the last part of it, so Ironsworn's, Starforged's and Sundered Isles' of the same name count alike):
-  - Shield-Bearer, Ironclad or Armored a Tank (guarding its friends); Archer, Slinger, Sniper, Gunner and the like a Wallflower (fighting at range); Berserker or Brawler a Brawler; Swordmaster, Blademaster or Duelist an Instigator;
-  - Banner-Sworn a Martyr who'd lead; Commander or Leader leads; Herbalist or Healer an Enabler (healing readily); Lorekeeper, Lore Hunter or Sleuth a Lore-Collector;
-  - Infiltrator, Shadow-Kin, Shade or Scoundrel a Thief; Ritualist, Seer, Kinetic and every ritual Un-Mundane; Revenant or Slayer Relentless; Oathbreaker a Redeem-Seeker; Loyalist a People-Pleaser;
-  - Fortune Hunter, Mercenary or Bounty Hunter a Mercenary; Diplomat or Empath a Diplomat; Firebrand an Instigator.
-- **A foe's nature:** horrors and machines Relentless (they never break); beasts and animals Brawlers (they stay where the fight is).
-- **Keywords:** what's said of a character (a Starforged sheet's characteristics) in full; its notes (an Ironsworn sheet's notes) and its vows, its story, a little. A foe's description in full; its quest starter, a story, a little.
-
-### Let this character decide
-
-What "Let this character decide" stands for, question by question, where Ironsworn's data says something; the GM sees each answer with its reason (an asset's or a foe's name, a stat, a nature). Anything it says nothing about is the core's reading of the character's hidden scores.
-
-**A character**, from its assets (by the system's id; the asset itself for who it is, the abilities marked on it for what it does, the first one counting if none is marked; a ship's or vehicle's modules aren't its own), its stats and its supply. Where its assets disagree, the answer most of them give, and none on a tie:
-- **Fighting style:** the weapon its asset is for: a bow, sling, rifle, heavy gun or pistols at range (Archer, Slinger, Sniper, Gunner, Gunslinger, Musketeer, Pistoleer); a shield guarding (Shield-Bearer, who also goes for whoever attacks its friends); a blade, axe, hammer, staff or armor up close (Swordmaster, Blademaster, Duelist, Sunderer, Thunder-Bringer, Long-Arm, Brawler, Berserker, Ironclad, Armored, Swashbuckler); a dagger or a veil from the shadows (Cutthroat, Dancer, Shade). No such asset: iron up close, edge at range, whichever is higher.
-- **Who to attack first:** a Berserker the nearest; a Duelist, Slayer or Bounty Hunter the most dangerous.
-- **Magic and specialties** (securing an advantage with its assets): its marked abilities that Secure an Advantage or Gain Ground (the system's links to those moves in their text), each ritual, and mystic powers (Ritualist, Kinetic, Sorcerer, Windbinder, Shapechanger, Necromancer, Firebrand, Seer, Sighted): two of them a little more often, four much more.
-- **Resources** (burning momentum): readily, with an ability marked that pays off when it burns momentum (Swordmaster, Veteran, Swashbuckler, Survivor, a Banner-Sworn in the fray); holding on to it, with one that needs momentum at its max (Kinetic, Demolitionist).
-- **Talking:** a Diplomat or Empath talks first; a Scoundrel, Trickster, Pretender, Socialite, Spy, Storyweaver or Leader when it could work; otherwise, marked abilities that Compel (one or two, when it could work; three, first).
-- **Healing others:** a Herbalist or Healer, or a marked ability that Heals (a Rider's is its horse's), keeps everyone up (unless the character would go further already).
-- **When an ally is dying:** healers, the Loyalist, the Bonded, a Banner-Sworn and a marked ability that aids an ally drop everything to save them.
-- **After I'm revived:** back into the fight for a Berserker, Revenant, Undead, Fated, Battle-Scarred or Augmented; a healer heals itself first.
-- **When to retreat:** never for a Berserker, Revenant or Undead; when the battle turns for a Mercenary, Fortune Hunter or Scoundrel; when badly hurt for a Fugitive.
-- **Others nearby:** a Slayer or Bounty Hunter hunts them down; a Commander, Crew Commander, Fleet Commander, Banner-Sworn or one with a Cohort runs for help.
-- **Consumables:** an Alchemist (elixirs) or Demolitionist (explosives) uses them freely.
-- **Offer and expect:** a Diplomat or Empath offers not to harm them; a Trader or Fortune Hunter offers a Supply (if it has any); a Fugitive offers to leave; a Mercenary or Pirate Captain expects a Supply; a Courier expects to be let through.
-
-**A foe**, from its nature, then its kind (by its id: what its drives and tactics say), each shown with its name:
-- Horrors and machines never break; beasts and animals stay with the fight; only people and the Firstborn talk.
-- Raiders talk first (to intimidate), never break, burn everything down (hunting whoever's near) and expect Supply; scrap bandits talk first, get out when it goes wrong and expect Supply; drift pirates and firestorm troopers go for the weakest and expect Supply. What a foe expects is half its rank in Supply, rounded up.
-- Common folk protect their own, rescue a friend, run for help and want not to be harmed; a warrior protects those in its charge; warriors and hunters live to fight another day; a zealot talks first and never breaks; the broken never talk and go for whoever's nearest.
-- A giant talks first, spares lives, offers peace and wants you gone; elves and the varou want you gone; trolls never talk and run when hurt; merrow and primordials never talk.
-- A wolf pack or howlcats go for the weakest and hunt; a cave lion and worldbreakers hunt; mammoths and sicklehorns protect their young and rescue them (mammoths to the death); a boar never breaks; a gaunt, a bear, gnawlings and water witchers flee when hurt; chitters and sky roosts call for help.
-- Bonewalkers, the risen, chimeras and bonehordes go for the nearest (bonewalkers and the risen hunt on); haunts, hollows and iron revenants rise again; a wight guards; a colossus ignores the small fry for the most dangerous; a servitor protects its people and weighs its odds; chiton never break and hunt; wardens never break.
-
-Ironsworn has no potions, no shields to raise and no signature attacks: those questions are always the core's.
-
-## Rules preference
-
-With more than one ruleset on in the world, Ironsworn, Starforged and Sundered Isles have moves of the same name that play differently: Strike, Clash, Endure Harm, Enter the Fray. **Settings → FastFighting Ironsworn → Rules preference** says which version a character makes, one pill on at a time:
-
-- **Follow character sheets** (the default): every character makes the moves of the sheet it's on now, the token's own choice of sheet over its actor's (an Ironsworn sheet's; a Starforged sheet's, or Sundered Isles' in a world with that on and not Starforged), even where that sheet shows other rulesets' moves too. A sheet that's neither (the compact sheet) goes by the rulesets the world has on, Ironsworn first.
-- **Prefer Ironsworn**, **Prefer Starforged**, **Prefer Sundered Isles**: where that ruleset has a move of the same name (and the world has it on), every character makes that ruleset's version. Of the combat moves, Sundered Isles has its own Enter the Fray. Moves called differently stay the character's own (End the Fight, Take Decisive Action), and so do the words for who has the upper hand (the initiative, in control). A deadly weapon's harm counts only on Ironsworn's Strike and Clash; Starforged's mark progress.
-
-## Do it For Real Now
-
-In a live battle, each turn's changes go onto the sheets as the turn is played:
-- A character: health, spirit, momentum, its debilities or impacts (a wound or shaken the fight marks, and any the GM marks or clears in the Battle Vantage, which offers them by the system's names), and how it ended (out cold, dying, dead, or deathbound after Face Death). What a player marks or clears on the sheet between turns counts from the next one.
-- One track for the encounter: its progress, on the sheet of the character who keeps it (completed when the objective is achieved); the foes' own tracks are left as they were.
-- A foe: progress marked on its track, the track completed when it was beaten (and its token marked defeated); a foe that fled is hidden.
-- Supply paid: lowered for every character on the payer's side, and (with the system's Shared Supply Tracker on, as it is by default) every character and starship it shares Supply with. Ground given: a mark of progress on the foe's track.
-
-Rewind Turn takes one turn back; Rewind This Encounter, all of it.
-
-## Development
-
-The tests import FastFighting Core from a checkout beside this one (`../FastFighting`; override with `FASTFIGHTING_CORE`):
-
-```
-npm install
-npm test
-```
-
-Junction or symlink this folder into Foundry as `Data/modules/fast-fighting-ironsworn`.
-
-Every word this module shows is in `languages/en.json`: the code holds keys, never the English. Translating it takes only a copy of that file (see **Translating** in the core README). `npm run test:reworded` runs the tests again with every word in the language files reworded, so they never depend on the wording.
-
-`hardcoded-toEN.json` lists words that stay in English for now, whatever the reader's language: keys of `languages/en.json` (or a group, `"FFIRONSWORN.Move"`) whose translation would contradict a game system that isn't translated yet. It has the date it was last updated (`lastUpdated`) and the list (`keys`). It's plain JSON, edited like the language files.
+**Homebrew.** The books leave these to the table, and this module rules them with the game's own moves: who is put in harm's way, and when; provocation, theft, hazards, breaking free and locked doors as Face Danger, with the stats and costs above; a door's 1 to 3 harm (Ironsworn) or one hit (Starforged); Heal in a fight only in control, and +wits for the character's own wounds too (the books say the lower of wits and iron); End the Fight two boxes sooner for one in a hurry; +shadow in the fray for one keeping a low profile.
 
 ## License
 
 MIT for this module's code. Ironsworn and Starforged are by Shawn Tomkin, under CC BY 4.0; this module isn't affiliated with or endorsed by their author.
+
+---
+
+Developer notes: [CODING_README.md](CODING_README.md). FastFighting itself: [FastFighting Core](https://github.com/galaara98/FastFighting) and its [developer docs](https://github.com/galaara98/FastFighting/blob/main/CODING_README.md).

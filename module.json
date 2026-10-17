@@ -1,7 +1,7 @@
 {
   "id": "fast-fighting-ironsworn",
   "title": "FastFighting Ironsworn",
-  "description": "Ironsworn and Starforged support for FastFighting Core: reads foundry-ironsworn characters (stats, health, momentum, wounds, who has the initiative) and foes (their progress tracks and ranks, and what they are), plays the combat moves the characters make (Enter the Fray, Strike, Clash, End the Fight or Take Decisive Action, Pay the Price, Endure Harm, Face Death, burning momentum), and writes live battles' turns back onto the sheets.",
+  "description": "Ironsworn and Starforged support for FastFighting Core: reads foundry-ironsworn characters and foes, plays the characters' combat moves against progress tracks, and writes live battles onto the sheets.",
   "version": "0.3.0",
   "authors": [
     {
