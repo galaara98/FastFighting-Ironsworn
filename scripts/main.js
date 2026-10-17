@@ -6,6 +6,7 @@
 import { IronswornAdapter } from "./adapter.js";
 import { registerLoreBoost } from "./lore.js";
 import { DOOR_HARM } from "./conflict.js";
+import { hideBurn } from "./system-roll.js";
 
 export const MODULE_ID = "fast-fighting-ironsworn";
 
@@ -83,6 +84,10 @@ Hooks.once("fastFighting.init", api => {
   // Words kept in English for now, while the system isn't translated (hardcoded-toEN.json).
   api.keepEnglish(MODULE_ID);
 });
+
+// The cards FastFighting rolls in its turns: no burn button on them, which would change the sheet and not the turn
+// (system-roll.js).
+Hooks.on("renderChatMessageHTML", hideBurn);
 
 /** The rules preference as pills: one click, one on at a time (the setting's own select, hidden, keeps the value). */
 Hooks.on("renderSettingsConfig", (app, element) => {

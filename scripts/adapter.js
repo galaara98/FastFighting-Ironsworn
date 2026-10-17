@@ -23,7 +23,7 @@
 import { SystemAdapter, hasWords, localize, plainText } from "./core.js";
 import { ironswornRules, DEBILITIES, DEBILITY_KEYS } from "./rules.js";
 import { characterMoves, foeNumbers, loreSizeUp, doorWork, STATS, SAVE_STATS } from "./build.js";
-import { moveFor, rollIronswornMove } from "./system-roll.js";
+import { moveFor, rollIronswornMove, burnOnCard } from "./system-roll.js";
 import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
 import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
@@ -163,6 +163,8 @@ export class IronswornAdapter extends SystemAdapter {
       iwr: { immune: [], weak: {}, resist: {} },
       resources: { momentum: Number(sys.momentum?.value ?? 2) },
       momentumReset: Number(sys.momentumReset ?? sys.momentum?.resetValue ?? 2),
+      // (Before its impacts: the rules count them as they're marked, as the system does.)
+      momentumResetValue: Number(sys.momentum?.resetValue ?? 2),
       momentumMax: Number(sys.momentumMax ?? sys.momentum?.max ?? 10),
       wounded: !!sys.debility?.wounded,
       // Spirit, for stress (mental shock, despair); shaken, already.
@@ -549,6 +551,14 @@ export class IronswornAdapter extends SystemAdapter {
    */
   async rollCheck(token, options = {}) {
     return this.#rollMove(token, "check", options);
+  }
+
+  /**
+   * API 19. Momentum burned on a roll FastFighting rolled the system's way, as the rules burned it ("burnMomentum"), on
+   * its card (system-roll.js burnOnCard). {done: true}, or null.
+   */
+  async adjustRolled(token, { card, adjust } = {}) {
+    return adjust === "burnMomentum" ? burnOnCard(token, card) : null;
   }
 
   /** A character's save or check as its move (system-roll.js moveFor), by its sheet's stats and ruleset, rolled. */

@@ -1,8 +1,9 @@
 /**
- * A live battle's saves and checks in a turn FastFighting plays (core API 19 rollSave and rollCheck), rolled the
- * foundry-ironsworn system's way: an action roll for one of its moves, +a stat, its card in the chat, as its move dialog
- * makes one (its own IronswornRoll and IronswornRollMessage, CONFIG.IRONSWORN.applications), with no dialog. The card is
- * graded as a player's move card is (read-turn.js outcomeOf).
+ * A live battle's saves and checks in a turn FastFighting plays (core API 19 rollSave and rollCheck; adjustRolled for
+ * momentum burned on them), rolled the foundry-ironsworn system's way: an action roll for one of its moves, +a stat,
+ * its card in the chat, as its move dialog makes one (its own IronswornRoll and IronswornRollMessage,
+ * CONFIG.IRONSWORN.applications), with no dialog. The card is graded as a player's move card is (read-turn.js
+ * outcomeOf).
  *   - Only a character rolls. A foe never does: the engine rolls for one (null).
  *   - A save is Face Danger, +the stat its key stands for (build.js SAVE_STATS, or a stat by name: a hazard's +edge); of
  *     several, the highest.
@@ -12,14 +13,24 @@
  *   - The move is the character's own ruleset's (Sundered Isles plays Starforged's). The DC goes on as adds, as the
  *     rules count it (rules.js addsFor), and the sheet's momentum with it, as the system's dialog has it (a negative one
  *     cancels a matching action die). The engine's own adds (Secure an Advantage's +1 on the next move) aren't on it.
- *   - Nothing burns momentum: the system never does by itself, and the engine doesn't after a roll the system made. The
- *     card's own button is the player's; the turn has been played with the roll as it fell.
+ *   - Momentum is burned as the rules burn it on the engine's own dice (rules.js adjustRoll): a save's, and the result
+ *     names its card (`card`, its message id) for that. The burn is carried out on the card as its own button does
+ *     (IronswornRollMessage.burnMomentum: the outcome the burned momentum gets against the same challenge dice, its
+ *     replacedOutcome, the card made again), with the momentum the engine burned (rules.js burnsAsked). The sheet's
+ *     momentum is reset with the turn's other changes, at its end (commit.js), so Rewind takes it back with them, and
+ *     the card goes with the turn's other cards.
+ *   - Each card is marked as FastFighting's (flags["fast-fighting-ironsworn"].rolled): its own burn button, which would
+ *     change the sheet and not the turn already played, is gone (hideBurn).
  * No GM's say ({gm: true}): each is a move and a stat the rules have already chosen.
  */
 import { RULESETS } from "./moves.js";
-import { addsFor } from "./rules.js";
+import { addsFor, burnsAsked } from "./rules.js";
 import { STATS, SAVE_STATS, COMPEL_STATS } from "./build.js";
-import { outcomeOf } from "./read-turn.js";
+import { outcomeOf, rollOf } from "./read-turn.js";
+import { t } from "./words.js";
+
+/** This module's flags' scope. */
+const MODULE = "fast-fighting-ironsworn";
 
 /** The moves rolled here, by their keys (moves.js), in Ironsworn and in Starforged: their Datasworn ids. */
 const MOVE_IDS = Object.freeze({
@@ -82,7 +93,7 @@ export function rolledOf(roll) {
 
 /**
  * A save or a check rolled with the system's own roller (moveFor's move), its card in the chat: {degree, natural, total,
- * dice}, or null where it isn't a character's or the system has no roller to hand (the engine rolls it).
+ * dice, card}, or null where it isn't a character's or the system has no roller to hand (the engine rolls it).
  * @param {TokenDocument} token
  * @param {object} how                moveFor's {move, stat, adds}
  * @param {object} [options]
@@ -101,14 +112,63 @@ export async function rollIronswornMove(token, how, { secret = false } = {}) {
     moveDsId: how.move,
     actorId: actor.id
   });
-  // (For the GMs' eyes only: its card in the GMs' mode, as it's made.)
-  const hook = secret ? Hooks.on("preCreateChatMessage", (message, data, options, userId) => {
-    if ( userId === game.user?.id && message.speaker?.actor === actor.id ) message.applyMode?.("gm");
-  }) : null;
+  // (Its card, as it's made: marked as FastFighting's; for the GMs' eyes only, in the GMs' mode.)
+  const hook = Hooks.on("preCreateChatMessage", (message, data, options, userId) => {
+    if ( userId !== game.user?.id || message.speaker?.actor !== actor.id ) return;
+    message.updateSource({ flags: { [MODULE]: { rolled: true } } });
+    if ( secret ) message.applyMode?.("gm");
+  });
+  let made = null;
   try {
-    await new apps.IronswornRollMessage(roll, actor).createOrUpdate();
+    made = await new apps.IronswornRollMessage(roll, actor).createOrUpdate();
   } finally {
-    if ( hook !== null ) Hooks.off("preCreateChatMessage", hook);
+    Hooks.off("preCreateChatMessage", hook);
   }
-  return rolledOf(roll);
+  const out = rolledOf(roll);
+  const card = made?.id ?? roll.chatMessageId;
+  return out && typeof card === "string" ? { ...out, card } : out;
+}
+
+/**
+ * Momentum burned on a card FastFighting rolled (the adapter's adjustRolled, "burnMomentum"), as the card's own button
+ * burns it: its outcome the momentum's against the same challenge dice, in the system's words (IRONSWORN.MomentumBurnt),
+ * and the card made again. The momentum is the one the rules burned (rules.js burnsAsked); the sheet's is reset with the
+ * turn's other changes. {done: true}, or null where it can't (the rules keep the roll as it fell).
+ * @param {TokenDocument} token
+ * @param {string} card   the card's message id
+ */
+export async function burnOnCard(token, card) {
+  const asked = burnsAsked.get(card);
+  burnsAsked.delete(card);
+  const message = typeof card === "string" ? game.messages?.get(card) : null;
+  const apps = globalThis.CONFIG?.IRONSWORN?.applications;
+  const json = message ? rollOf(message) : null;
+  if ( !Number.isFinite(asked?.momentum) || !json || token?.actor?.type !== "character" || !apps?.IronswornRoll || !apps.IronswornRollMessage ) return null;
+  // (Only an action roll not burned already.)
+  if ( json.preRollOptions?.progress || json.postRollOptions?.replacedOutcome ) return null;
+  const roll = apps.IronswornRoll.fromJson(json);
+  roll.postRollOptions ??= {};
+  roll.chatMessageId = message.id;
+  roll.roll = message.rolls?.[0];
+  const { degree, challenge } = outcomeOf(roll);
+  const beats = challenge.filter(c => asked.momentum > c).length;
+  if ( (beats === 2 ? 3 : beats === 1 ? 2 : 1) <= degree ) return null;
+  roll.postRollOptions.replacedOutcome = { value: beats, source: game.i18n.localize("IRONSWORN.MomentumBurnt") };
+  await new apps.IronswornRollMessage(roll, token.actor).createOrUpdate();
+  return { done: true };
+}
+
+/** Is this card one FastFighting rolled in a turn it played (rollIronswornMove)? */
+export const rolledHere = message => !!message?.flags?.[MODULE]?.rolled;
+
+/**
+ * A card of FastFighting's, rendered (renderChatMessageHTML): its burn button gone (the turn was played with the roll as
+ * FastFighting left it), a line saying so in its place.
+ */
+export function hideBurn(message, html) {
+  if ( !rolledHere(message) ) return;
+  for ( const section of html?.querySelectorAll?.(".momentum-burn") ?? [] ) {
+    const note = globalThis.document ? Object.assign(globalThis.document.createElement("span"), { textContent: t("Burn.Handled") }) : null;
+    section.replaceChildren(...(note ? [note] : []));
+  }
 }

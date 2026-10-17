@@ -41,7 +41,8 @@
     "TheRoll": "the roll",
     "Burn": {
       "Strong": "burns momentum ({n}): {label} is a strong hit",
-      "Weak": "burns momentum ({n}): {label} is a weak hit"
+      "Weak": "burns momentum ({n}): {label} is a weak hit",
+      "Handled": "FastFighting chose not to burn momentum."
     },
     "Endure": {
       "ShakeCost": "shakes it off (+1 health, -{n} momentum)",

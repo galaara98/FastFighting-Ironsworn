@@ -116,8 +116,36 @@ function witnessesFall(run, c, u) {
 
 const momentumOf = u => u.resources?.momentum ?? 0;
 const setMomentum = (u, v) => { u.resources.momentum = clamp(v, MOMENTUM.min, u.momentumMax ?? MOMENTUM.max); };
-/** Momentum's reset, less one for each impact marked in this fight (a wound). */
-const resetOf = u => Math.max(0, (u.spec.momentumReset ?? MOMENTUM.reset) - (u.wounded && !u.spec.wounded ? 1 : 0));
+/** The debilities and impacts marked: on a character now (its conditions), and on its sheet as the battle began. */
+const impactsNow = u => DEBILITY_KEYS.filter(k => (Number(u.conds?.[k]) || 0) > 0).length;
+const impactsAt = spec => DEBILITY_KEYS.filter(k => (Number(spec.conditions?.[k]) || 0) > 0 || (PLAYED.includes(k) && !!spec[k])).length;
+/**
+ * Momentum's reset, as the system works it out (its momentumReset): the sheet's reset value less one for each debility
+ * or impact marked now, those marked in this fight among them (a wound, shaken), from 0 to 10.
+ */
+function resetOf(u) {
+  const value = Number.isFinite(u.spec.momentumResetValue) ? u.spec.momentumResetValue : (u.spec.momentumReset ?? MOMENTUM.reset) + impactsAt(u.spec);
+  return clamp(value - impactsNow(u), 0, MOMENTUM.max);
+}
+
+/**
+ * Burns the rules ask for on a roll the system made (adjustRoll, ctx.rolled), by its card's message id: the momentum
+ * burned, for system-roll.js to show on that card what the engine burned. (The rules and the live side that burns it
+ * run in the same browser, the GM's.)
+ */
+export const burnsAsked = new Map();
+
+/**
+ * Momentum burned on a roll the system made, carried out on its card the system's way (the live side's "adjust", by
+ * the adapter's adjustRolled): true once it's done. Asked the first time, the turn stops here (the core's
+ * NeedsDecision), and the card is burned (reading burnsAsked) before the turn is played again with the answer.
+ */
+function burnedOnCard(run, u, card, momentum) {
+  burnsAsked.set(card, { momentum });
+  const answer = run.live?.roll?.(run, { kind: "adjust", unitId: u.id, card, adjust: "burnMomentum" });
+  burnsAsked.delete(card);
+  return answer?.done === true;
+}
 
 export const ironswornRules = {
   /**
@@ -319,11 +347,12 @@ export const ironswornRules = {
     return [...said, fray, provoke(run, u)].filter(Boolean);
   },
   /**
-   * Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. Not on a
-   * roll the system made (ctx.rolled): its card is shown, and burning is its player's to do from it.
+   * Burning momentum: when it turns a miss into a hit, or (with plenty to spare) a weak hit into a strong one. A roll the
+   * system made (ctx.rolled), the same way, burned on its card (burnedOnCard); where that can't be done, as it fell.
    */
   adjustRoll(run, u, roll, ctx) {
-    if ( ctx?.rolled || !isMover(u) || !roll?.challenge || ctx?.action?.progressRoll ) return roll;
+    if ( !isMover(u) || !roll?.challenge || ctx?.action?.progressRoll ) return roll;
+    if ( ctx?.rolled && typeof roll.card !== "string" ) return roll;
     const momentum = momentumOf(u);
     const better = burnGrade(momentum, roll.challenge);
     if ( better === null || better <= roll.degree || momentum <= resetOf(u) ) return roll;
@@ -334,7 +363,7 @@ export const ironswornRules = {
     const worth = roll.degree <= 1
       ? stakes >= (use === "conserve" ? 0.3 : use === "nova" ? 0 : 0.1)
       : use !== "conserve" && (momentum >= (use === "nova" ? 4 : 6) || (ctx?.stakes ?? 0) >= (use === "nova" ? 0.3 : 0.5));
-    if ( !worth ) return roll;
+    if ( !worth || (ctx?.rolled && !burnedOnCard(run, u, roll.card, momentum)) ) return roll;
     setMomentum(u, resetOf(u));
     u.burned = (u.burned ?? 0) + 1;
     return { ...roll, total: momentum, degree: better, burned: momentum,
