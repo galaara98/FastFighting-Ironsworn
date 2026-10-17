@@ -44,7 +44,7 @@ With the initiative (Starforged: in control) a character Strikes; without it, it
 
 ### Momentum is a resource to burn
 
-Momentum is a resource, as the core counts them: each point is worth a step toward a burn. A character burns it to turn a miss into a hit or, with plenty to spare, a weak hit into a strong one, never on a progress roll; momentum then resets. Its **Resources** tactics answer sets how readily: conserving, only for a miss that matters; all out, for any miss, and for a weak hit with 4 or more.
+Momentum is a resource, as the core counts them: each point is worth a step toward a burn. A character burns it to turn a miss into a hit or, with plenty to spare, a weak hit into a strong one, never on a progress roll; momentum then resets. Its **Spell slots, focus and limited abilities** tactics answer sets how readily: conserving, only for a miss that matters; all out, for any miss, and for a weak hit with 4 or more.
 
 ### Health, spirit and supply
 
@@ -103,7 +103,7 @@ Someone taking a side mid-fight (won over, or turning) has one effect in a confl
 
 A character starts as the usual hero, and its sheet moves each trait a little: its stats, assets, debilities or impacts, bonds or connections, vows, legacies, and how far it has come. A Shield-Bearer is more loyal and bold; a corrupted character, more selfish. A foe's traits come from its kind, its rank (the higher, the bolder), what the books say of its kind (a raider is greedy and bold), and whether it comes as many. Each trait's tooltip in the planner lists every part that moved it.
 
-When FastFighting sets a character up by itself, its assets suggest playstyles (a Shield-Bearer a Tank, a Berserker a Brawler, an Archer a Wallflower). **Let this character decide** answers from a character's assets, stats and supply (a Berserker goes for the nearest foe and never retreats), or from a foe's kind (raiders talk first, to intimidate, and expect Supply). The GM sees each answer with its reason. [CODING_README.md](CODING_README.md#personality-and-set-up) lists every mapping.
+When FastFighting sets a character up by itself, its assets suggest playstyles (a Shield-Bearer a Tank, a Berserker a Brawler, an Archer a Wallflower). **Let this character decide** answers from a character's assets, stats and supply (a Berserker goes for the nearest foe and never retreats), or from a foe's kind (raiders talk first, to intimidate, and expect Supply). The GM sees each answer with its reason. [CODING_README.md](CODING_README.md#personality-and-set-up) lists the main mappings.
 
 ## The encounter's one track
 
@@ -149,7 +149,7 @@ Every perk a playstyle (or a tactics answer) can switch on does something here, 
 | --- | --- |
 | Drawing attacks, guarding, taunting | When a friend misses, Pay the Price may put this character **in harm's way** instead (one of the books' own prices): always one whose taunt the foe is under; otherwise one who draws attacks or guards, as likely as its perk. |
 | Hard to spot | When it misses, the foe's eye may slide to a friend beside it, who pays the price. On its first turn it may Enter the Fray moving into position unseen (+shadow). |
-| Hard to taunt | A taunting foe doesn't roll: it provokes, as often as the Taunting setting lets a taunt take hold. The character it would draw Faces Danger (+heart); on a miss it wants to go for that foe, unless it shrugs taunts off. |
+| Hard to taunt | A taunting foe doesn't roll: it provokes, as often as the **Playstyle taunts: taking hold (%)** setting lets a taunt take hold. The character it would draw Faces Danger (+heart); on a miss it wants to go for that foe, unless it shrugs taunts off. |
 | Spoiling, weak spots | There are no conditions to lay and no damage types: it Secures an Advantage (Gain Ground) more often. |
 | In a hurry | It takes on End the Fight two boxes sooner (three boxes of a foe's own track, five of the encounter's) and doesn't stop to Secure an Advantage. |
 | Helping | Aid Your Ally. |
