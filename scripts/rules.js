@@ -34,7 +34,7 @@
  * hazard makes those it reaches Face Danger (+edge). One in a hurry takes End the Fight on sooner; how freely a
  * character uses resources says how readily it burns momentum.
  */
-import { DOWNED_MODELS, STATUS, clamp, listItems, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance, coverOf } from "./core.js";
+import { DOWNED_MODELS, STATUS, clamp, listItems, localize, behaviorOf, applyOutcome, dropCondition, tauntProof, goadLuck, isStanding, edgeDistance, coverOf, hiddenSides } from "./core.js";
 import { movesFor, harm, MOMENTUM, TICKS, TRACK, grade, chances, burnGrade, harmTable, stressTable } from "./moves.js";
 import { sharedOf, trackRankOf, ENCOUNTER, STEPS, RANK_KEYS, DOOR_HARM } from "./conflict.js";
 import { t, statName, moveName } from "./words.js";
@@ -120,6 +120,16 @@ const setMomentum = (u, v) => { u.resources.momentum = clamp(v, MOMENTUM.min, u.
 const resetOf = u => Math.max(0, (u.spec.momentumReset ?? MOMENTUM.reset) - (u.wounded && !u.spec.wounded ? 1 : 0));
 
 export const ironswornRules = {
+  /**
+   * Surprise as Ironsworn has it (the planner's Follow System): those lying in wait as it starts (a side with hidden
+   * tokens) ambush the rest, and Enter the Fray says so (+shadow, +wits). No rounds to speak of: the plan's own choices
+   * (the party surprised, or surprising) give surprise without a round of its own.
+   */
+  surprise(run) {
+    const by = hiddenSides(run);
+    return by.length ? { by } : null;
+  },
+  surpriseRound: false,
   id: "foundry-ironsworn",
 
   /* Turn ------------------------------------------------------------------ */
@@ -773,10 +783,11 @@ function provoke(run, foe) {
 function enterTheFray(run, u) {
   if ( !isMover(u) || u.control !== undefined ) return null;
     const m = movesOf(u);
-    const surprise = run.prep.options.surpriseSide;
+    // (An ambush, as the plan or the rules have it (run.surprise): the ambushers +shadow, the ambushed +wits.)
+    const ambush = run.surprise?.by ?? [];
     const stats = u.spec.stats ?? {};
     const ways = (behaviorOf(u).lowProfile ?? 0) > 0 ? [...(m.fray.stats ?? ["heart"]), "shadow"] : m.fray.stats ?? ["heart"];
-    const stat = surprise === u.side ? "shadow" : surprise ? "wits" : ways.reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
+    const stat = ambush.includes(u.side) ? "shadow" : ambush.length ? "wits" : ways.reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
     const roll = actionRoll(run.rng, stats[stat] ?? 1);
     u.control = roll.degree >= 2;
     if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);

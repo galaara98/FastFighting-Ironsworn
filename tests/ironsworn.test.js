@@ -532,3 +532,20 @@ describe("a locked door", () => {
     }
   });
 });
+
+describe("surprise (the planner's Surprise)", () => {
+  const fray = (options, over = {}) => {
+    const r = replay(fight([hero(), foe(over)], options), ironswornRules, 3);
+    return { fray: r.log.find(e => e.actor === "kara" && e.move === "fray")?.stat ?? null, round: r.log.some(e => e.type === "surprise") };
+  };
+
+  test("Follow System: foes lying in wait (hidden) ambush the party, who Enter the Fray +wits; with nobody hidden, the usual stat", () => {
+    expect(fray({ surprise: "system" }, { hidden: true })).toEqual({ fray: "wits", round: false });
+    expect(fray({ surprise: "system" }).fray).not.toBe("wits");
+  });
+
+  test("the party surprising or surprised: +shadow or +wits, and no round of anyone's own (Ironsworn has none)", () => {
+    expect(fray({ surprise: "friendlySurprise" })).toEqual({ fray: "shadow", round: false });
+    expect(fray({ surprise: "friendlySurprised" })).toEqual({ fray: "wits", round: false });
+  });
+});
