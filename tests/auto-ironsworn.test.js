@@ -11,6 +11,8 @@ describe("the playstyles Ironsworn says fit", () => {
   test("an asset by the last part of its id (each ruleset's of the same name alike); rituals make a mystic", () => {
     expect(assetKey("asset:classic/combat_talent/shield_bearer")).toBe("shield_bearer");
     expect(ironswornHints({ assets: ["shield_bearer"] })).toEqual({ tank: 0.6 });
+    // (A Skirmisher darts in and out: a Kiter. The core's Speed Runner is gone.)
+    expect(ironswornHints({ assets: ["skirmisher"] })).toEqual({ kiter: 0.3 });
     expect(ironswornHints({ assets: ["oathbreaker"] }).redeemSeeker).toBe(0.6);
     expect(ironswornHints({ assets: ["ritualist", "ward", "scry"], rituals: 2 }).unmundane).toBeCloseTo(0.9);
     expect(ironswornHints({ assets: ["horse"] })).toEqual({});

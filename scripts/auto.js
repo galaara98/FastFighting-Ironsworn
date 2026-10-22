@@ -18,7 +18,7 @@ const ASSETS = Object.freeze({
   gunslinger: { wallflower: 0.3 }, fletcher: { wallflower: 0.2 },
   berserker: { brawler: 0.4, impatient: 0.3 }, brawler: { brawler: 0.6 }, sunderer: { brawler: 0.3 }, thunder_bringer: { brawler: 0.3 },
   swordmaster: { instigator: 0.3 }, blademaster: { instigator: 0.3 }, weapon_master: { instigator: 0.3 }, weaponmaster: { instigator: 0.3 },
-  duelist: { instigator: 0.3 }, skirmisher: { speedRunner: 0.3 }, cutthroat: { cruel: 0.3, thief: 0.2 },
+  duelist: { instigator: 0.3 }, skirmisher: { kiter: 0.3 }, cutthroat: { cruel: 0.3, thief: 0.2 },
   banner_sworn: { leader: 0.3, martyr: 0.3 }, bannersworn: { leader: 0.3, martyr: 0.3 }, commander: { leader: 0.6 }, leader: { leader: 0.6 },
   herbalist: { enabler: 0.6 }, healer: { enabler: 0.6 },
   lorekeeper: { loreCollector: 0.5 }, lore_hunter: { loreCollector: 0.5 }, sleuth: { loreCollector: 0.4 },

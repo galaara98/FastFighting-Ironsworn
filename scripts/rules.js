@@ -46,12 +46,40 @@ export const addsFor = dc => (Number.isFinite(dc) ? Math.round((BASE_DC - dc) / 
 const movesOf = u => u.spec.moveRules ?? movesFor(u.spec.ruleset);
 const isMover = u => !!u?.spec?.mover;
 
-/** A plain action roll: a d6 + mod (+ adds), at most 10, against two challenge dice. */
+/**
+ * A plain action roll: a d6 + mod (+ adds), at most 10, against two challenge dice. `shown`: how its dice show as a
+ * table roll (the core's split): the action die and its score, then each challenge die on its own (a progress roll, the
+ * challenge dice alone).
+ */
 function actionRoll(rng, mod, { adds = 0, progress = false } = {}) {
   const die = progress ? 0 : rng.die(6);
   const score = progress ? clamp(mod, 0, 10) : Math.min(10, die + mod + adds);
   const challenge = [rng.die(10), rng.die(10)];
-  return { natural: die, total: score, challenge, match: challenge[0] === challenge[1], degree: grade(score, challenge) };
+  const first = progress ? 0 : 1;
+  const shown = [
+    ...(progress ? [] : [{ dice: 1, roll: 0, mod: mod + adds, total: score }]),
+    ...challenge.map((c, i) => ({ dice: 1, roll: first + i, mod: 0, total: c }))
+  ];
+  return { natural: die, total: score, challenge, match: challenge[0] === challenge[1], degree: grade(score, challenge), shown };
+}
+
+/**
+ * A move the rules roll themselves (Endure Harm, Face Danger ...), an action roll: where the dice record (a live
+ * battle), a table roll, `by` whoever makes it, `label` the move's name.
+ */
+function moveRoll(rng, mod, { by = null, label = "", adds = 0 } = {}) {
+  const at = rng.mark?.();
+  const roll = actionRoll(rng, mod, { adds });
+  if ( at !== undefined ) rng.record?.(at, { by, kind: "other", label, mod: mod + adds, total: roll.total, natural: roll.natural, degree: roll.degree, split: roll.shown });
+  return roll;
+}
+
+/** A d100 on the harm or stress table (`label`), for `by`: a table roll where the dice record. */
+function tableD100(rng, by, label) {
+  const at = rng.mark?.();
+  const d100 = rng.die(100);
+  if ( at !== undefined ) rng.record?.(at, { by, kind: "other", label, total: d100, natural: d100 });
+  return d100;
 }
 
 /**
@@ -439,7 +467,7 @@ export const ironswornRules = {
     if ( !isMover(u) || u.status !== STATUS.STANDING ) return null;
     const m = movesOf(u);
     const stat = Math.max(Math.max(0, u.hp), u.spec.stats?.iron ?? 1);
-    const roll = actionRoll(rng, stat);
+    const roll = moveRoll(rng, stat, { by: u, label: m.endure.name });
     const e = m.endure;
     const base = t("MoveRoll", { move: e.name, stat, total: roll.total, dice: listItems(roll.challenge), what: "" });
     const data = { move: "endure", total: roll.total, challenge: roll.challenge, degree: roll.degree, harm: amount };
@@ -479,12 +507,12 @@ export const ironswornRules = {
       u.wounded = true;
       return { text: base + t("Endure.Wounded"), data: { ...data, wounded: true } };
     }
-    const d100 = rng.die(100);
+    const d100 = tableD100(rng, u, t("Rolls.HarmTable"));
     const result = harmTable(d100);
     const said = { ...data, d100, result };
     if ( result === "mortal" ) {
       // Face Death: +heart. A strong hit casts you back; a weak hit leaves a deathbound quest; a miss is death.
-      const face = actionRoll(rng, u.spec.stats?.heart ?? 1);
+      const face = moveRoll(rng, u.spec.stats?.heart ?? 1, { by: u, label: m.face.name });
       said.faceDeath = face.degree;
       if ( face.degree <= 1 ) {
         u.status = STATUS.DEAD;
@@ -604,8 +632,12 @@ export const ironswornRules = {
   recoveryCheck() {
     return null;
   },
-  persistentFlatCheck(rng) {
-    return rng.die(10) >= 6;
+  /** Persistent harm's end: a d10, 6 or more (shown, where the dice record). */
+  persistentFlatCheck(rng, { unit = null } = {}) {
+    const at = rng.mark?.();
+    const natural = rng.die(10);
+    if ( at !== undefined ) rng.record?.(at, { by: unit, kind: "flat", what: "persistentEnd", total: natural, natural, dc: 6, degree: natural >= 6 ? 2 : 1 });
+    return natural >= 6;
   },
 
   /* Holds ----------------------------------------------------------------- */
@@ -754,7 +786,7 @@ function foeBeside(run, u) {
 function faceDanger(run, who, stat, { mod = null, adds = 0, data = {} } = {}) {
   const m = movesOf(who);
   const label = moveName("FaceDanger");
-  const first = actionRoll(run.rng, Number.isFinite(mod) ? mod : who.spec.stats?.[stat] ?? 1, { adds });
+  const first = moveRoll(run.rng, Number.isFinite(mod) ? mod : who.spec.stats?.[stat] ?? 1, { by: who, label, adds });
   const roll = first.degree <= 1 ? ironswornRules.adjustRoll(run, who, first, { kind: "check", label }) : first;
   // (A strong hit, +1 momentum; a weak hit's cost and a miss's price, -1; a miss loses the upper hand too.)
   if ( roll.degree === 3 ) setMomentum(who, momentumOf(who) + 1);
@@ -805,7 +837,7 @@ function provoke(run, foe) {
   const marks = run.units.filter(o => isMover(o) && isStanding(o) && enemies.has(o.side) && !(o.effects ?? []).some(e => e.taunt && e.sourceId === foe.id));
   if ( !marks.length || run.rng.die(100) > goadLuck(run, { goad: share }) ) return null;
   const mark = marks.find(o => o.targetId === foe.id) ?? marks.sort((a, b) => (edgeDistance(a, foe) ?? 0) - (edgeDistance(b, foe) ?? 0))[0];
-  const roll = actionRoll(run.rng, mark.spec.stats?.heart ?? 1);
+  const roll = moveRoll(run.rng, mark.spec.stats?.heart ?? 1, { by: mark, label: moveName("FaceDanger") });
   let what = "Holds";
   if ( roll.degree <= 1 ) {
     what = run.rng.chance(tauntProof(mark)) ? "Shrugs" : "Rises";
@@ -829,7 +861,7 @@ function enterTheFray(run, u) {
     const stats = u.spec.stats ?? {};
     const ways = (behaviorOf(u).lowProfile ?? 0) > 0 ? [...(m.fray.stats ?? ["heart"]), "shadow"] : m.fray.stats ?? ["heart"];
     const stat = ambush.includes(u.side) ? "shadow" : ambush.length ? "wits" : ways.reduce((best, s) => ((stats[s] ?? 1) > (stats[best] ?? 1) ? s : best));
-    const roll = actionRoll(run.rng, stats[stat] ?? 1);
+    const roll = moveRoll(run.rng, stats[stat] ?? 1, { by: u, label: m.fray.name });
     u.control = roll.degree >= 2;
     if ( roll.degree === 3 ) setMomentum(u, momentumOf(u) + 2);
     if ( roll.degree <= 1 && m.fray.missMomentum ) setMomentum(u, momentumOf(u) + m.fray.missMomentum);
@@ -903,7 +935,7 @@ export function endureStress(run, u, amount, rng) {
   u.spirit = Math.max(0, u.spirit - amount);
   if ( over ) setMomentum(u, momentumOf(u) - over);
   const stat = Math.max(u.spirit, u.spec.stats?.heart ?? 1);
-  const roll = actionRoll(rng, stat);
+  const roll = moveRoll(rng, stat, { by: u, label: m.stress.name });
   const base = t("MoveRoll", { move: m.stress.name, stat, total: roll.total, dice: listItems(roll.challenge), what: "" });
   const data = { move: "stress", total: roll.total, challenge: roll.challenge, degree: roll.degree, stress: amount };
   if ( roll.degree === 3 ) {
@@ -940,10 +972,10 @@ export function endureStress(run, u, amount, rng) {
     u.shaken = true;
     return { text: base + t("Stress.Shaken"), data: { ...data, shaken: true } };
   }
-  const d100 = rng.die(100);
+  const d100 = tableD100(rng, u, t("Rolls.StressTable"));
   const result = stressTable(d100);
   if ( result === "desolation" ) {
-    const face = actionRoll(rng, u.spec.stats?.heart ?? 1);
+    const face = moveRoll(rng, u.spec.stats?.heart ?? 1, { by: u, label: m.desolation.name });
     if ( face.degree >= 2 ) return { text: base + t("Stress.DesolateHolds", { d100, face: m.desolation.name }), data: { ...data, d100, result, face: face.degree } };
     // It gives up the fight: out of it, as one who ran.
     for ( const id of u.adjacent ?? [] ) run.byId.get(id)?.adjacent.delete(u.id);

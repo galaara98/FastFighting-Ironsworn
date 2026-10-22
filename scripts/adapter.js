@@ -26,7 +26,7 @@ import { characterMoves, foeNumbers, loreSizeUp, doorWork, STATS, SAVE_STATS } f
 import { moveFor, rollIronswornMove, burnOnCard } from "./system-roll.js";
 import { loreBoost } from "./lore.js";
 import { movesFor, TRACK } from "./moves.js";
-import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId } from "./traits.js";
+import { deriveIronswornTraits, natureOf, speaks, assetLeanKey, foeId, aptitudesOf } from "./traits.js";
 import { rankIronswornLeaders } from "./leadership.js";
 import { commitIronswornChanges, commitEncounterTurn, describeIronswornOutcome, commitIronswornConcession, supplyOf, meterOf, encounterTrack, keptTrack, describeEncounterTrack } from "./commit.js";
 import { readIronswornTurn } from "./read-turn.js";
@@ -92,6 +92,14 @@ export class IronswornAdapter extends SystemAdapter {
 
   get rules() {
     return ironswornRules;
+  }
+
+  /**
+   * The same rules for the planner's background workers (the core's API 22): rules.js and what it imports touch nothing
+   * of Foundry's, and the world's settings reach them through the specs (a door's harm, a deadly weapon's, sizing up).
+   */
+  workerRules() {
+    return { url: new URL("./rules.js", import.meta.url).href, exportName: "ironswornRules" };
   }
 
   canHandle(actor) {
@@ -178,6 +186,8 @@ export class IronswornAdapter extends SystemAdapter {
       traits: Object.fromEntries(Object.entries(derived.traits).map(([k, v]) => [k, { base: v, fudge: 0 }])),
       traitReasons: derived.reasons,
       flags: { ...derived.flags },
+      // (What it's like, on the core's hidden scale: traits.js aptitudesOf, from its stats. Core API 23.)
+      aptitudes: aptitudesOf(stats),
       diesAtZero: false,
       perception: stats.wits,
       // Sizing a foe up (a Lore-Collector): Secure an Advantage, +wits; its next attack or words likelier (the setting).

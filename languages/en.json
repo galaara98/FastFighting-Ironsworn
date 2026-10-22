@@ -38,6 +38,10 @@
     "Attack": "Attack",
     "MomentumChange": ", {n} momentum",
     "MoveRoll": "{move} (+{stat} {total} vs {dice}): {what}",
+    "Rolls": {
+      "HarmTable": "Harm table",
+      "StressTable": "Stress table"
+    },
     "TheRoll": "the roll",
     "Burn": {
       "Strong": "burns momentum ({n}): {label} is a strong hit",

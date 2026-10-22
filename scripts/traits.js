@@ -292,3 +292,14 @@ export function deriveIronswornTraits(d) {
   const built = traitsFromParts(start, parts, { lead: reasons, min: 0, max: 100 });
   return { traits: built.traits, flags, reasons: built.reasons };
 }
+
+/**
+ * What a character is like on the core's hidden scale (aptitudes, core API 23: 0 to 4, 2 average), from its stats, which
+ * sit on it already (1 a weak point, 2 the usual, 3 a strength, 4 exceptional): smart and wise its wits (expertise,
+ * observation), strong its iron, fast its edge, charismatic its heart. A foe has no stats, so none: the core's own
+ * reading (an animal's or a beast's wits, flags.beast; a machine's, mindless).
+ */
+export function aptitudesOf(stats = {}) {
+  const of = k => clamp(Number(stats?.[k]) || 0, 0, 4);
+  return { smart: of("wits"), strong: of("iron"), fast: of("edge"), wise: of("wits"), charismatic: of("heart") };
+}
